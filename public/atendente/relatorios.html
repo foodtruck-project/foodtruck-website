@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Vendas - Food Truck</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../../assets/css/relatorios.css"> <!-- CSS específico para esta área -->
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>Food Truck - Relatório de Vendas</h1>
+            <nav>
+                <a href="acompanhar_pedidos.html">Acompanhar Pedidos</a>
+                <a href="#" id="logoutBtn">Sair</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="reports-container">
+        <h2>Análise de Desempenho Financeiro</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="startDate">Data Início:</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="filter-group">
+                <label for="endDate">Data Fim:</label>
+                <input type="date" id="endDate">
+            </div>
+            <div class="filter-group">
+                <label for="grouping">Agrupar por:</label>
+                <select id="grouping">
+                    <option value="day">Dia</option>
+                    <option value="month">Mês</option>
+                </select>
+            </div>
+            <button id="applyFilterBtn" class="btn-primary">Aplicar Filtro</button>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <div id="summary" class="summary-container">
+            <h3>Resumo do Período</h3>
+            <p><strong>Faturamento Total:</strong> <span id="totalRevenue">R$ 0,00</span></p>
+            <p><strong>Total de Pedidos:</strong> <span id="totalOrders">0</span></p>
+        </div>
+
+        <div id="loadingMessage" style="display: none;">Carregando dados...</div>
+        <div id="noDataMessage" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Food Truck. Todos os direitos reservados.</p>
+    </footer>
+
+    <!-- Biblioteca Chart.js para os gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <!-- Scripts da aplicação -->
+    <script src="../../assets/js/common.js"></script>
+    <script src="relatorios.js"></script>
+</body>
+</html>
