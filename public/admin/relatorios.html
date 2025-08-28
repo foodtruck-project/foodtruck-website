@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatório de Vendas - Food Truck</title>
-    <link rel="stylesheet" href="../../assets/css/style.css"">
-    <link rel="stylesheet" href="../../assets/css/relatorios.css"> <!-- CSS específico para esta área -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/relatorios.css">
 </head>
 <body>
     <header>
@@ -23,12 +23,16 @@
 
         <div class="filters-container">
             <div class="filter-group">
-                <label for="startDate">Data Início:</label>
-                <input type="date" id="startDate">
-            </div>
-            <div class="filter-group">
-                <label for="endDate">Data Fim:</label>
-                <input type="date" id="endDate">
+                <label for="dateRange">Período:</label>
+                <select id="dateRange">
+                    <option value="last7days">Últimos 7 dias</option>
+                    <option value="last30days" selected>Últimos 30 dias</option>
+                    <option value="last90days">Últimos 90 dias</option>
+                    <option value="last180days">Últimos 180 dias</option>
+                    <option value="currentMonth">Mês atual</option>
+                    <option value="lastMonth">Mês anterior</option>
+                    <option value="currentYear">Ano atual</option>
+                </select>
             </div>
             <div class="filter-group">
                 <label for="grouping">Agrupar por:</label>
@@ -37,8 +41,8 @@
                     <option value="month">Mês</option>
                 </select>
             </div>
-            <button id="applyFilterBtn" class="btn-primary">Aplicar Filtro</button>
-        </div>
+            
+            </div>
 
         <div class="chart-container">
             <canvas id="salesChart"></canvas>
@@ -58,11 +62,8 @@
         <p>&copy; 2024 Food Truck. Todos os direitos reservados.</p>
     </footer>
 
-    <!-- Biblioteca Chart.js para os gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
-    <!-- Scripts da aplicação -->
     <script src="../../assets/js/common.js"></script>
     <script src="relatorios.js"></script>
 </body>

@@ -7,8 +7,7 @@ const MENSAGENS = {
     SESSAO_EXPIRADA: 'Sessão expirada ou acesso negado. Faça login novamente.',
     ERRO_CONFIGURACAO_API: 'Erro de configuração: API_BASE_URL não encontrada.',
     ERRO_CARREGAR_DADOS: 'Erro ao carregar dados do relatório:',
-    ERRO_CONEXAO_SERVIDOR: 'Não foi possível conectar ao servidor.',
-    PERIODO_INVALIDO: 'A data de início não pode ser posterior à data de fim.'
+    ERRO_CONEXAO_SERVIDOR: 'Não foi possível conectar ao servidor.'
 };
 
 const URLS = {
@@ -71,10 +70,8 @@ function processarDadosVendas(pedidos, agrupamento) {
         let chave;
 
         if (agrupamento === 'month') {
-            // Chave no formato 'AAAA-MM'
             chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
         } else { // 'day'
-            // Chave no formato 'AAAA-MM-DD'
             chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
         }
 
@@ -84,7 +81,6 @@ function processarDadosVendas(pedidos, agrupamento) {
         dadosAgrupados[chave] += pedido.total;
     });
 
-    // Ordena as chaves (datas) e prepara os dados para o gráfico
     const labels = Object.keys(dadosAgrupados).sort();
     const data = labels.map(label => dadosAgrupados[label]);
 
@@ -103,7 +99,7 @@ function renderizarGrafico(labels, data) {
     const tipoAgrupamento = document.getElementById('grouping').value;
 
     if (salesChart) {
-        salesChart.destroy(); // Destrói o gráfico antigo antes de criar um novo
+        salesChart.destroy();
     }
 
     salesChart = new Chart(ctx, {
@@ -183,39 +179,27 @@ function atualizarResumo(pedidos) {
 // --- Função Principal de Carregamento de Dados ---
 
 /**
- * Busca os pedidos concluídos da API dentro de um intervalo de datas e atualiza a UI.
+ * Busca os pedidos da API e atualiza a UI com base no período e status selecionados.
  */
 async function carregarRelatorio() {
     const loadingMessage = document.getElementById('loadingMessage');
     const noDataMessage = document.getElementById('noDataMessage');
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
+    const dateRangeSelect = document.getElementById('dateRange');
     const groupingSelect = document.getElementById('grouping');
-
+    
     loadingMessage.style.display = 'block';
     noDataMessage.style.display = 'none';
     document.querySelector('.chart-container').style.display = 'none';
     document.getElementById('summary').style.display = 'none';
 
-    const startDate = startDateInput.value;
-    const endDate = endDateInput.value;
     const agrupamento = groupingSelect.value;
-
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-        alert(MENSAGENS.PERIODO_INVALIDO);
-        loadingMessage.style.display = 'none';
-        return;
-    }
+    const selectedRange = dateRangeSelect.value;
+    
+    // Calcula as datas de início e fim com base na opção selecionada
+    const { startDate, endDate } = calcularPeriodo(selectedRange);
 
     try {
-        const queryParams = new URLSearchParams();
-        if (startDate) queryParams.append('start_date', startDate);
-        if (endDate) queryParams.append('end_date', `${endDate}T23:59:59`); // Inclui o dia todo
-
-        // Remove o filtro de status da URL, pois ele será feito manualmente.
-        // Isso aumenta a chance da API retornar dados, mesmo que o filtro de status na API seja um problema.
-
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
+        const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${obterTokenAcesso()}`,
@@ -232,18 +216,15 @@ async function carregarRelatorio() {
         loadingMessage.style.display = 'none';
 
         if (resposta.ok && resultado.orders?.length > 0) {
-            // **CORREÇÃO AQUI: Filtragem dupla (status e datas) no lado do cliente**
             const pedidosFiltrados = resultado.orders.filter(pedido => {
-                const pedidoData = new Date(pedido.created_at.split('T')[0]); // Considera apenas a data
+                const pedidoData = new Date(pedido.created_at.split('T')[0]);
                 const start = startDate ? new Date(startDate) : null;
                 const end = endDate ? new Date(endDate) : null;
                 
                 const isWithinDateRange = (!start || pedidoData >= start) && (!end || pedidoData <= end);
                 const isCompleted = pedido.status === 'COMPLETED';
-
                 return isCompleted && isWithinDateRange;
             });
-            
 
             if (pedidosFiltrados.length > 0) {
                 const { labels, data } = processarDadosVendas(pedidosFiltrados, agrupamento);
@@ -256,12 +237,12 @@ async function carregarRelatorio() {
             } else {
                 noDataMessage.style.display = 'block';
                 if (salesChart) salesChart.destroy();
-                atualizarResumo([]); // Limpa o resumo
+                atualizarResumo([]);
             }
         } else {
             noDataMessage.style.display = 'block';
             if (salesChart) salesChart.destroy();
-            atualizarResumo([]); // Limpa o resumo
+            atualizarResumo([]);
         }
 
     } catch (error) {
@@ -270,6 +251,48 @@ async function carregarRelatorio() {
         noDataMessage.textContent = MENSAGENS.ERRO_CONEXAO_SERVIDOR;
         noDataMessage.style.display = 'block';
     }
+}
+
+/**
+ * Calcula as datas de início e fim com base na opção do seletor.
+ * @param {string} range - A opção selecionada ('last7days', 'last30days', etc.).
+ * @returns {{startDate: string, endDate: string}} As datas calculadas no formato YYYY-MM-DD.
+ */
+function calcularPeriodo(range) {
+    const today = new Date();
+    let startDate = new Date(today);
+    let endDate = new Date(today);
+
+    switch (range) {
+        case 'last7days':
+            startDate.setDate(today.getDate() - 7);
+            break;
+        case 'last30days':
+            startDate.setDate(today.getDate() - 30);
+            break;
+        case 'last90days':
+            startDate.setDate(today.getDate() - 90);
+            break;
+        case 'last180days':
+            startDate.setDate(today.getDate() - 180);
+            break;
+        case 'currentMonth':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            break;
+        case 'lastMonth':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+        case 'currentYear':
+            startDate = new Date(today.getFullYear(), 0, 1);
+            break;
+    }
+
+    // Retorna as datas no formato YYYY-MM-DD
+    return {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+    };
 }
 
 // --- Lógica Principal: Executada quando o DOM está completamente carregado ---
@@ -286,21 +309,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- Referências DOM e Configuração Inicial ---
+    // --- Referências DOM e Event Listeners ---
     const logoutBtn = document.getElementById('logoutBtn');
-    const applyFilterBtn = document.getElementById('applyFilterBtn');
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
+    const dateRangeSelect = document.getElementById('dateRange');
+    const groupingSelect = document.getElementById('grouping');
 
-    // Define o período padrão para os últimos 30 dias
-    const hoje = new Date();
-    const trintaDiasAtras = new Date();
-    trintaDiasAtras.setDate(hoje.getDate() - 30);
-
-    endDateInput.value = hoje.toISOString().split('T')[0];
-    startDateInput.value = trintaDiasAtras.toISOString().split('T')[0];
-
-    // --- Event Listeners ---
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -309,10 +322,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (applyFilterBtn) {
-        applyFilterBtn.addEventListener('click', carregarRelatorio);
-    }
+    // **AQUI: Adicionamos o listener de 'change' para acionar o filtro automaticamente**
+    dateRangeSelect.addEventListener('change', carregarRelatorio);
+    groupingSelect.addEventListener('change', carregarRelatorio);
 
     // --- Carregamento Inicial ---
+    // A opção "Últimos 30 dias" é a padrão, então o carregamento inicial usará essa opção
     carregarRelatorio();
 });
