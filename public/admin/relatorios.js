@@ -20,6 +20,15 @@ let salesChart = null; // Instância do gráfico Chart.js de vendas
 let productRevenueChart = null; // Nova instância para o gráfico de faturamento por produto
 let productSalesOverTimeChart = null; // Nova instância para o gráfico de evolução de faturamento por produto
 let productsCache = new Map(); // Cache para armazenar ID do produto -> { nome: '...', preco: '...' }
+let productColorsCache = new Map(); // Cache para armazenar ID do produto -> cor
+
+// Paleta de cores para os gráficos
+const predefinedColors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+    '#FF9F40', '#E7E9ED', '#8B4513', '#228B22', '#CD5C5C',
+    '#A9A9A9', '#DAA520', '#800000', '#483D8B', '#008B8B',
+    '#00CED1', '#DC143C', '#FFD700', '#ADFF2F', '#FF1493'
+];
 
 // --- Funções Auxiliares (reutilizadas de outros scripts) ---
 const obterTokenAcesso = () => localStorage.getItem('accessToken');
@@ -37,7 +46,7 @@ function lidarComErroAutenticacao(resposta) {
 }
 
 /**
- * Carrega todos os produtos da API e preenche o productsCache.
+ * Carrega todos os produtos da API e preenche o productsCache e o productColorsCache.
  */
 async function carregarProdutos() {
     try {
@@ -57,10 +66,15 @@ async function carregarProdutos() {
 
         if (resposta.ok && resultado.products) {
             productsCache.clear();
+            productColorsCache.clear();
+            let colorIndex = 0;
             resultado.products.forEach(product => {
                 productsCache.set(product.id, { name: product.name, price: product.price });
+                const color = predefinedColors[colorIndex % predefinedColors.length];
+                productColorsCache.set(product.id, color);
+                colorIndex++;
             });
-            console.log('Cache de produtos preenchido.');
+            console.log('Cache de produtos e cores preenchido.');
             return true;
         } else {
             console.error(MENSAGENS.ERRO_CARREGAR_PRODUTOS, resultado.detail || resposta.statusText);
@@ -116,7 +130,7 @@ function processarFaturamentoPorProduto(pedidos) {
 
             if (productInfo) {
                 const total = item.quantity * productInfo.price;
-                const currentData = revenueAndQuantityByProduct.get(productId) || { revenue: 0, quantity: 0 };
+                const currentData = revenueAndQuantityByProduct.get(productId) || { revenue: 0, quantity: 0, productId: productId };
                 currentData.revenue += total;
                 currentData.quantity += item.quantity;
                 revenueAndQuantityByProduct.set(productId, currentData);
@@ -149,15 +163,6 @@ function processarEvolucaoProdutos(pedidos, agrupamento) {
     const dadosAgrupados = {};
     const produtosUnicos = new Set();
     
-    // Cores predefinidas para os produtos
-    const predefinedColors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#E7E9ED', '#8B4513', '#228B22', '#CD5C5C',
-        '#A9A9A9', '#DAA520', '#800000', '#483D8B', '#008B8B'
-    ];
-    
-    let colorIndex = 0;
-
     pedidos.forEach(pedido => {
         const data = new Date(pedido.created_at);
         let chave;
@@ -186,8 +191,8 @@ function processarEvolucaoProdutos(pedidos, agrupamento) {
 
     const labels = Object.keys(dadosAgrupados).sort();
     const datasets = Array.from(produtosUnicos).sort().map(productName => {
-        const color = predefinedColors[colorIndex % predefinedColors.length];
-        colorIndex++;
+        const productId = Array.from(productsCache.entries()).find(([id, info]) => info.name === productName)?.[0];
+        const color = productColorsCache.get(productId) || '#E7E9ED';
         
         return {
             label: productName,
@@ -271,20 +276,17 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
     noDataMessage.style.display = 'none';
     if (productRevenueChart) { productRevenueChart.destroy(); }
     
-    // Cores dinâmicas para o gráfico
-    const backgroundColors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#E7E9ED', '#8B4513', '#228B22', '#CD5C5C'
-    ];
+    // Usa as cores do cache
+    const backgroundColors = data.map(item => productColorsCache.get(item.productId) || '#E7E9ED');
     
     productRevenueChart = new Chart(ctx, {
-        type: 'doughnut', // Gráfico de rosca é bom para fatias de um todo
+        type: 'doughnut',
         data: {
             labels: labels,
             datasets: [{
-                data: data.map(item => item.revenue), // Use o faturamento para o tamanho das fatias
-                backgroundColor: backgroundColors.slice(0, labels.length),
-                hoverBackgroundColor: backgroundColors.slice(0, labels.length)
+                data: data.map(item => item.revenue),
+                backgroundColor: backgroundColors,
+                hoverBackgroundColor: backgroundColors
             }]
         },
         options: {
@@ -302,7 +304,7 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
                             const totalRevenue = context.dataset.data.reduce((sum, current) => sum + current, 0);
                             const percentage = totalRevenue > 0 ? ((revenue / totalRevenue) * 100).toFixed(2) : 0;
                             const formattedRevenue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revenue);
-                            const quantity = data[context.dataIndex].quantity; // Obtenha a quantidade do novo objeto de dados
+                            const quantity = data[context.dataIndex].quantity;
                             
                             return `${label}: ${formattedRevenue} (${percentage}%) - Qtd: ${quantity}`;
                         }
@@ -392,7 +394,6 @@ async function carregarRelatorio() {
     
     loadingMessage.style.display = 'block';
     noDataMessage.style.display = 'none';
-    // Oculta todos os gráficos no início
     document.getElementById('salesChart').parentElement.style.display = 'none';
     document.getElementById('productRevenueChart').parentElement.style.display = 'none';
     document.getElementById('productSalesOverTimeChart').parentElement.style.display = 'none';
@@ -412,14 +413,12 @@ async function carregarRelatorio() {
     }
 
     try {
-        // Primeiro, carregue a lista de produtos
         const produtosCarregados = await carregarProdutos();
         if (!produtosCarregados) {
              loadingMessage.style.display = 'none';
              return;
         }
 
-        // Em seguida, carregue os pedidos
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/`, {
             method: 'GET',
             headers: {
@@ -457,10 +456,8 @@ async function carregarRelatorio() {
             
 
             if (pedidosFiltrados.length > 0) {
-                // Faturamento por período (gráfico 1)
                 const { labels, data } = processarDadosVendas(pedidosFiltrados, agrupamento);
                 
-                // Exibe os contêineres dos gráficos
                 document.getElementById('salesChart').parentElement.style.display = 'flex';
                 document.getElementById('productRevenueChart').parentElement.style.display = 'flex';
                 document.getElementById('productSalesOverTimeChart').parentElement.style.display = 'flex';
@@ -469,11 +466,9 @@ async function carregarRelatorio() {
                 renderizarGrafico(labels, data);
                 atualizarResumo(pedidosFiltrados);
 
-                // Faturamento por produto (gráfico 2)
                 const { labels: productLabels, data: productData } = processarFaturamentoPorProduto(pedidosFiltrados);
                 renderizarGraficoFaturamentoPorProduto(productLabels, productData);
                 
-                // Evolução do faturamento por produto (gráfico 3)
                 const { labels: evoLabels, datasets: evoDatasets } = processarEvolucaoProdutos(pedidosFiltrados, agrupamento);
                 renderizarGraficoEvolucaoProdutos(evoLabels, evoDatasets);
             } else {
