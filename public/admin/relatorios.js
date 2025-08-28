@@ -208,11 +208,12 @@ async function carregarRelatorio() {
     }
 
     try {
-        const queryParams = new URLSearchParams({
-            status: 'COMPLETED'
-        });
+        const queryParams = new URLSearchParams();
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', `${endDate}T23:59:59`); // Inclui o dia todo
+
+        // Remove o filtro de status da URL, pois ele será feito manualmente.
+        // Isso aumenta a chance da API retornar dados, mesmo que o filtro de status na API seja um problema.
 
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
             method: 'GET',
@@ -231,21 +232,31 @@ async function carregarRelatorio() {
         loadingMessage.style.display = 'none';
 
         if (resposta.ok && resultado.orders?.length > 0) {
-            // **CORREÇÃO AQUI: Adicionar filtragem no lado do cliente**
-            const pedidosConcluidos = resultado.orders.filter(pedido => pedido.status === 'COMPLETED');
+            // **CORREÇÃO AQUI: Filtragem dupla (status e datas) no lado do cliente**
+            const pedidosFiltrados = resultado.orders.filter(pedido => {
+                const pedidoData = new Date(pedido.created_at.split('T')[0]); // Considera apenas a data
+                const start = startDate ? new Date(startDate) : null;
+                const end = endDate ? new Date(endDate) : null;
+                
+                const isWithinDateRange = (!start || pedidoData >= start) && (!end || pedidoData <= end);
+                const isCompleted = pedido.status === 'COMPLETED';
 
-            if (pedidosConcluidos.length > 0) {
-                const { labels, data } = processarDadosVendas(pedidosConcluidos, agrupamento);
+                return isCompleted && isWithinDateRange;
+            });
+            
+
+            if (pedidosFiltrados.length > 0) {
+                const { labels, data } = processarDadosVendas(pedidosFiltrados, agrupamento);
                 
                 document.querySelector('.chart-container').style.display = 'block';
                 document.getElementById('summary').style.display = 'block';
                 
                 renderizarGrafico(labels, data);
-                atualizarResumo(pedidosConcluidos);
+                atualizarResumo(pedidosFiltrados);
             } else {
                 noDataMessage.style.display = 'block';
                 if (salesChart) salesChart.destroy();
-                atualizarResumo([]);
+                atualizarResumo([]); // Limpa o resumo
             }
         } else {
             noDataMessage.style.display = 'block';
