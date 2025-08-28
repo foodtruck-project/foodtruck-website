@@ -182,9 +182,10 @@ function processarEvolucaoProdutos(pedidos, agrupamento) {
                 const productName = productInfo.name;
                 produtosUnicos.add(productName);
                 if (!dadosAgrupados[chave][productName]) {
-                    dadosAgrupados[chave][productName] = 0;
+                    dadosAgrupados[chave][productName] = { revenue: 0, quantity: 0 };
                 }
-                dadosAgrupados[chave][productName] += item.quantity * productInfo.price;
+                dadosAgrupados[chave][productName].revenue += item.quantity * productInfo.price;
+                dadosAgrupados[chave][productName].quantity += item.quantity;
             }
         });
     });
@@ -196,7 +197,11 @@ function processarEvolucaoProdutos(pedidos, agrupamento) {
         
         return {
             label: productName,
-            data: labels.map(label => dadosAgrupados[label][productName] || 0),
+            data: labels.map(label => ({
+                x: label,
+                y: dadosAgrupados[label][productName]?.revenue || 0,
+                quantity: dadosAgrupados[label][productName]?.quantity || 0
+            })),
             borderColor: color,
             backgroundColor: color,
         };
@@ -367,8 +372,9 @@ function renderizarGraficoEvolucaoProdutos(labels, datasets) {
                         label: function(context) {
                             const label = context.dataset.label || '';
                             const value = context.parsed.y || 0;
+                            const quantity = context.raw.quantity;
                             const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-                            return `${label}: ${formattedValue}`;
+                            return `${label}: ${formattedValue} - Qtd: ${quantity}`;
                         }
                     }
                 }
