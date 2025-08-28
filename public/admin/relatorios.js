@@ -102,12 +102,12 @@ function processarDadosVendas(pedidos, agrupamento) {
 }
 
 /**
- * Calcula o faturamento total por produto.
+ * Calcula o faturamento total e a quantidade total por produto.
  * @param {Array<Object>} pedidos - Lista de pedidos concluídos.
- * @returns {{labels: Array<string>, data: Array<number>}} Objeto com labels e dados para o gráfico.
+ * @returns {{labels: Array<string>, data: Array<Object>}} Objeto com labels e dados para o gráfico.
  */
 function processarFaturamentoPorProduto(pedidos) {
-    const revenueByProduct = new Map();
+    const revenueAndQuantityByProduct = new Map();
     pedidos.forEach(pedido => {
         pedido.products.forEach(item => {
             const productId = item.product_id;
@@ -115,8 +115,10 @@ function processarFaturamentoPorProduto(pedidos) {
 
             if (productInfo) {
                 const total = item.quantity * productInfo.price;
-                const currentRevenue = revenueByProduct.get(productId) || 0;
-                revenueByProduct.set(productId, currentRevenue + total);
+                const currentData = revenueAndQuantityByProduct.get(productId) || { revenue: 0, quantity: 0 };
+                currentData.revenue += total;
+                currentData.quantity += item.quantity;
+                revenueAndQuantityByProduct.set(productId, currentData);
             }
         });
     });
@@ -125,12 +127,12 @@ function processarFaturamentoPorProduto(pedidos) {
     const data = [];
 
     // Ordena por faturamento, do maior para o menor
-    Array.from(revenueByProduct.entries())
-         .sort(([, a], [, b]) => b - a)
-         .forEach(([productId, totalRevenue]) => {
+    Array.from(revenueAndQuantityByProduct.entries())
+         .sort(([, a], [, b]) => b.revenue - a.revenue)
+         .forEach(([productId, productData]) => {
              const productName = productsCache.get(productId)?.name || `Produto Desconhecido (${productId})`;
              labels.push(productName);
-             data.push(totalRevenue);
+             data.push(productData);
          });
 
     return { labels, data };
@@ -219,7 +221,7 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
         data: {
             labels: labels,
             datasets: [{
-                data: data,
+                data: data.map(item => item.revenue), // Use o faturamento para o tamanho das fatias
                 backgroundColor: backgroundColors.slice(0, labels.length),
                 hoverBackgroundColor: backgroundColors.slice(0, labels.length)
             }]
@@ -235,11 +237,13 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
                     callbacks: {
                         label: function(context) {
                             const label = context.label || '';
-                            const value = context.parsed || 0;
-                            const total = context.dataset.data.reduce((sum, current) => sum + current, 0);
-                            const percentage = total > 0 ? ((value / total) * 100).toFixed(2) : 0;
-                            const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-                            return `${label}: ${formattedValue} (${percentage}%)`;
+                            const revenue = context.parsed || 0;
+                            const totalRevenue = context.dataset.data.reduce((sum, current) => sum + current, 0);
+                            const percentage = totalRevenue > 0 ? ((revenue / totalRevenue) * 100).toFixed(2) : 0;
+                            const formattedRevenue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revenue);
+                            const quantity = data[context.dataIndex].quantity; // Obtenha a quantidade do novo objeto de dados
+                            
+                            return `${label}: ${formattedRevenue} (${percentage}%) - Qtd: ${quantity}`;
                         }
                     }
                 }
