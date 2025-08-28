@@ -1,39 +1,75 @@
 /* Estilos gerais da página */
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
 body {
-    background-image: url('../../assets/images/foodtruck-background.jpg'); /* Caminho para a sua imagem */
-    background-size: cover; /* Faz a imagem cobrir todo o fundo */
-    background-position: center center; /* Centraliza a imagem */
-    background-attachment: fixed; /* Mantém a imagem fixa ao rolar a página */
-    background-repeat: no-repeat; /* Evita que a imagem se repita */
-    background-color: #f4f4f4; /* Cor de fallback caso a imagem não carregue */
+    background-image: url('../../assets/images/foodtruck-background.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-color: #f4f4f4;
     color: #333;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
+    /* Altera o layout para flexbox e remove a altura fixa */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.content-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 50px 0; /* Ajusta o padding para evitar o problema */
+    flex-grow: 1;
+}
+
+/* Novo contêiner transparente à esquerda */
+.left-container {
+    background-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin: 0 20px 0 50px;
+    max-width: 350px;
+    height: fit-content;
+    text-align: center;
 }
 
 /* O resto do CSS permanece o mesmo ou com ajustes para legibilidade */
 .container {
+    flex-grow: 1;
     max-width: 900px;
-    margin: 20px auto;
+    margin-left: auto;
+    margin-right: 80px;
     padding: 20px;
-    background-color: rgba(255, 255, 255, 0.95); /* Fundo branco semi-transparente para o conteúdo */
+    background-color: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 header {
     text-align: center;
-    background-color: #3f51b5; /* Azul mais sóbrio */
+    background-color: #3f51b5;
     color: #fff;
     padding: 30px;
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
 }
 
-h1, h2 {
+h2 {
     color: #333;
     font-weight: 600;
-     text-align: center;
+    text-align: center;
 }
 
 hr {
@@ -91,7 +127,7 @@ hr {
 /* Estilos específicos para os cartões de ranking */
 .ranking-card {
     text-align: left;
-    border-left: 5px solid #00c853; /* Cor para destaque */
+    border-left: 5px solid #00c853;
 }
 
 .ranking-card .ranking-details {
@@ -108,7 +144,7 @@ hr {
 
 .ranking-card .ranking-details .rating {
     font-weight: bold;
-    color: #ff9800; /* Cor para a nota */
+    color: #ff9800;
 }
 
 /* Mensagens de feedback */
@@ -121,10 +157,22 @@ hr {
 
 /* Rodapé */
 footer {
+    width: 100%;
     text-align: center;
     padding: 20px;
     margin-top: 40px;
     font-size: 0.9em;
     color: #999;
     border-top: 1px solid #eee;
+    display: flex;
+    justify-content: center;
+}
+
+/* Ajuste no contêiner do rodapé para garantir que ele se alinhe corretamente */
+footer .container {
+    max-width: 900px;
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+    margin: 0 auto;
 }
