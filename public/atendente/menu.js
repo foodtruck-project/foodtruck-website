@@ -430,9 +430,10 @@ Observações: ${lastOrder.notes || 'Nenhuma'}`);
     // Ocultar menu admin para atendente e chapeiro
     const userRole = localStorage.getItem('userRole');
     if (userRole === 'attendant' || userRole === 'kitchen') {
-        if (DOM.adminMenuItem && DOM.adminMenuItem.parentElement) {
-            DOM.adminMenuItem.parentElement.style.display = 'none';
-        }
+        const adminOnlyItems = document.querySelectorAll('.admin-only');
+        adminOnlyItems.forEach(item => {
+            item.style.display = 'none';
+        });
     }
 
     // Verificação de API_BASE_URL (assumindo common.js está carregado)
