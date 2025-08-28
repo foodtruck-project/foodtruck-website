@@ -90,7 +90,7 @@ const formatarDataCriacao = (dataString) => {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: 'America/Mexico_City' // GMT-6
+        timeZone: 'America/Sao_Paulo' // GMT-6
     });
 };
 
