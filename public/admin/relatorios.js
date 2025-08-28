@@ -231,14 +231,22 @@ async function carregarRelatorio() {
         loadingMessage.style.display = 'none';
 
         if (resposta.ok && resultado.orders?.length > 0) {
-            const pedidos = resultado.orders;
-            const { labels, data } = processarDadosVendas(pedidos, agrupamento);
-            
-            document.querySelector('.chart-container').style.display = 'block';
-            document.getElementById('summary').style.display = 'block';
-            
-            renderizarGrafico(labels, data);
-            atualizarResumo(pedidos);
+            // **CORREÇÃO AQUI: Adicionar filtragem no lado do cliente**
+            const pedidosConcluidos = resultado.orders.filter(pedido => pedido.status === 'COMPLETED');
+
+            if (pedidosConcluidos.length > 0) {
+                const { labels, data } = processarDadosVendas(pedidosConcluidos, agrupamento);
+                
+                document.querySelector('.chart-container').style.display = 'block';
+                document.getElementById('summary').style.display = 'block';
+                
+                renderizarGrafico(labels, data);
+                atualizarResumo(pedidosConcluidos);
+            } else {
+                noDataMessage.style.display = 'block';
+                if (salesChart) salesChart.destroy();
+                atualizarResumo([]);
+            }
         } else {
             noDataMessage.style.display = 'block';
             if (salesChart) salesChart.destroy();
