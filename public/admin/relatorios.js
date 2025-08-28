@@ -19,31 +19,9 @@ let salesChart = null; // Instância do gráfico Chart.js
 
 // --- Funções Auxiliares (reutilizadas de outros scripts) ---
 
-/**
- * Obtém o token de acesso do localStorage.
- * @returns {string|null} O token de acesso ou null se não existir.
- */
 const obterTokenAcesso = () => localStorage.getItem('accessToken');
-
-/**
- * Remove os dados de sessão do localStorage.
- */
-const removerDadosSessao = () => {
-    localStorage.removeItem('accessToken');
-};
-
-/**
- * Redireciona o usuário para a página de login.
- */
-const redirecionarParaLogin = () => {
-    window.location.href = URLS.LOGIN;
-};
-
-/**
- * Lida com erros de autenticação ou autorização da API.
- * @param {Response} resposta - A resposta da requisição fetch.
- * @returns {boolean} True se um erro foi tratado, false caso contrário.
- */
+const removerDadosSessao = () => { localStorage.removeItem('accessToken'); };
+const redirecionarParaLogin = () => { window.location.href = URLS.LOGIN; };
 function lidarComErroAutenticacao(resposta) {
     if (resposta.status === 401 || resposta.status === 403) {
         alert(MENSAGENS.SESSAO_EXPIRADA);
@@ -64,11 +42,9 @@ function lidarComErroAutenticacao(resposta) {
  */
 function processarDadosVendas(pedidos, agrupamento) {
     const dadosAgrupados = {};
-
     pedidos.forEach(pedido => {
         const data = new Date(pedido.created_at);
         let chave;
-
         if (agrupamento === 'month') {
             chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
         } else { // 'day'
@@ -83,25 +59,15 @@ function processarDadosVendas(pedidos, agrupamento) {
 
     const labels = Object.keys(dadosAgrupados).sort();
     const data = labels.map(label => dadosAgrupados[label]);
-
     return { labels, data };
 }
 
 // --- Funções de Renderização na UI ---
 
-/**
- * Renderiza ou atualiza o gráfico de vendas.
- * @param {Array<string>} labels - As labels para o eixo X.
- * @param {Array<number>} data - Os valores para o eixo Y.
- */
 function renderizarGrafico(labels, data) {
     const ctx = document.getElementById('salesChart').getContext('2d');
     const tipoAgrupamento = document.getElementById('grouping').value;
-
-    if (salesChart) {
-        salesChart.destroy();
-    }
-
+    if (salesChart) { salesChart.destroy(); }
     salesChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -128,30 +94,20 @@ function renderizarGrafico(labels, data) {
                             month: 'MMM yyyy'
                         }
                     },
-                    title: {
-                        display: true,
-                        text: 'Período'
-                    }
+                    title: { display: true, text: 'Período' }
                 },
                 y: {
                     beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Faturamento (R$)'
-                    }
+                    title: { display: true, text: 'Faturamento (R$)' }
                 }
             },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
+                            if (label) { label += ': '; }
                             if (context.parsed.y !== null) {
                                 label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
                             }
@@ -164,23 +120,15 @@ function renderizarGrafico(labels, data) {
     });
 }
 
-/**
- * Atualiza os cartões de resumo com o faturamento total e o número de pedidos.
- * @param {Array<Object>} pedidos - A lista de pedidos filtrada.
- */
 function atualizarResumo(pedidos) {
     const faturamentoTotal = pedidos.reduce((acc, pedido) => acc + pedido.total, 0);
     const totalPedidos = pedidos.length;
-
     document.getElementById('totalRevenue').textContent = `R$ ${faturamentoTotal.toFixed(2)}`;
     document.getElementById('totalOrders').textContent = totalPedidos;
 }
 
-// --- Função Principal de Carregamento de Dados ---
+// --- Funções de Lógica e Carregamento ---
 
-/**
- * Busca os pedidos da API e atualiza a UI com base no período e status selecionados.
- */
 async function carregarRelatorio() {
     const loadingMessage = document.getElementById('loadingMessage');
     const noDataMessage = document.getElementById('noDataMessage');
@@ -195,8 +143,14 @@ async function carregarRelatorio() {
     const agrupamento = groupingSelect.value;
     const selectedRange = dateRangeSelect.value;
     
-    // Calcula as datas de início e fim com base na opção selecionada
-    const { startDate, endDate } = calcularPeriodo(selectedRange);
+    let startDate, endDate;
+
+    // Se a opção "Todo o período" for selecionada, não calculamos a data inicial ainda.
+    if (selectedRange !== 'allTime') {
+        const period = calcularPeriodo(selectedRange);
+        startDate = period.startDate;
+        endDate = period.endDate;
+    }
 
     try {
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/`, {
@@ -216,7 +170,17 @@ async function carregarRelatorio() {
         loadingMessage.style.display = 'none';
 
         if (resposta.ok && resultado.orders?.length > 0) {
-            const pedidosFiltrados = resultado.orders.filter(pedido => {
+            let pedidosParaFiltrar = resultado.orders;
+
+            // **Nova lógica para a opção "Todo o período"**
+            if (selectedRange === 'allTime') {
+                // Encontra a data mais antiga dos pedidos
+                const minDate = new Date(Math.min(...pedidosParaFiltrar.map(p => new Date(p.created_at))));
+                startDate = minDate.toISOString().split('T')[0];
+                endDate = new Date().toISOString().split('T')[0];
+            }
+
+            const pedidosFiltrados = pedidosParaFiltrar.filter(pedido => {
                 const pedidoData = new Date(pedido.created_at.split('T')[0]);
                 const start = startDate ? new Date(startDate) : null;
                 const end = endDate ? new Date(endDate) : null;
@@ -225,6 +189,7 @@ async function carregarRelatorio() {
                 const isCompleted = pedido.status === 'COMPLETED';
                 return isCompleted && isWithinDateRange;
             });
+            
 
             if (pedidosFiltrados.length > 0) {
                 const { labels, data } = processarDadosVendas(pedidosFiltrados, agrupamento);
@@ -253,11 +218,6 @@ async function carregarRelatorio() {
     }
 }
 
-/**
- * Calcula as datas de início e fim com base na opção do seletor.
- * @param {string} range - A opção selecionada ('last7days', 'last30days', etc.).
- * @returns {{startDate: string, endDate: string}} As datas calculadas no formato YYYY-MM-DD.
- */
 function calcularPeriodo(range) {
     const today = new Date();
     let startDate = new Date(today);
@@ -287,8 +247,7 @@ function calcularPeriodo(range) {
             startDate = new Date(today.getFullYear(), 0, 1);
             break;
     }
-
-    // Retorna as datas no formato YYYY-MM-DD
+    
     return {
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0]
@@ -297,19 +256,16 @@ function calcularPeriodo(range) {
 
 // --- Lógica Principal: Executada quando o DOM está completamente carregado ---
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Validação de Autenticação e Configuração ---
     if (!obterTokenAcesso()) {
         alert(MENSAGENS.AUTENTICACAO_NECESSARIA);
         redirecionarParaLogin();
         return;
     }
-
     if (typeof API_BASE_URL === 'undefined') {
         alert(MENSAGENS.ERRO_CONFIGURACAO_API);
         return;
     }
 
-    // --- Referências DOM e Event Listeners ---
     const logoutBtn = document.getElementById('logoutBtn');
     const dateRangeSelect = document.getElementById('dateRange');
     const groupingSelect = document.getElementById('grouping');
@@ -322,11 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // **AQUI: Adicionamos o listener de 'change' para acionar o filtro automaticamente**
     dateRangeSelect.addEventListener('change', carregarRelatorio);
     groupingSelect.addEventListener('change', carregarRelatorio);
 
-    // --- Carregamento Inicial ---
-    // A opção "Últimos 30 dias" é a padrão, então o carregamento inicial usará essa opção
     carregarRelatorio();
 });
