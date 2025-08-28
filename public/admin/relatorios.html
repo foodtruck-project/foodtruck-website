@@ -52,11 +52,17 @@
             <p><strong>Faturamento Total:</strong> <span id="totalRevenue">R$ 0,00</span></p>
             <p><strong>Total de Pedidos:</strong> <span id="totalOrders">0</span></p>
         </div>
-
         <h2>Faturamento por Produto</h2>
-        <div class="chart-container">            
+        <div class="chart-container">
+            
             <canvas id="productRevenueChart"></canvas>
             <p id="noProductRevenueDataMessage" style="display: none;">Nenhum dado de faturamento por produto encontrado para o período selecionado.</p>
+        </div>
+
+        <h2>Evolução do Faturamento por Produto</h2>
+        <div class="chart-container">         
+            <canvas id="productSalesOverTimeChart"></canvas>
+            <p id="noProductSalesOverTimeDataMessage" style="display: none;">Nenhum dado de evolução do faturamento por produto encontrado para o período selecionado.</p>
         </div>
 
         <div id="loadingMessage" style="display: none;">Carregando dados...</div>
