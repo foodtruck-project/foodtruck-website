@@ -1,59 +1,178 @@
-/* Estilos específicos para a página cardapio.html */
+/* Estilos gerais da página */
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
 body {
+    background-image: url('../../assets/images/foodtruck-background.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     background-color: #f4f4f4;
     color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    /* Altera o layout para flexbox e remove a altura fixa */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
+
+.content-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 50px 0; /* Ajusta o padding para evitar o problema */
+    flex-grow: 1;
+}
+
+/* Novo contêiner transparente à esquerda */
+.left-container {
+    background-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin: 0 20px 0 50px;
+    max-width: 350px;
+    height: fit-content;
+    text-align: center;
+}
+
+/* O resto do CSS permanece o mesmo ou com ajustes para legibilidade */
 .container {
-    max-width: 800px;
-    margin: 20px auto;
+    flex-grow: 1;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: 80px;
     padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
 header {
     text-align: center;
-    background-color: #007bff;
+    background-color: #3f51b5;
     color: #fff;
-    padding: 20px;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+    padding: 30px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
 }
-h1, h2 {
-    color: #007bff;
+
+h2 {
+    color: #333;
+    font-weight: 600;
+    text-align: center;
 }
+
 hr {
     border: 0;
     height: 1px;
-    background: #ccc;
-    margin: 20px 0;
+    background: #e0e0e0;
+    margin: 40px 0;
 }
-.ranking-container, .menu-container {
-    margin-top: 20px;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-th {
-    background-color: #f2f2f2;
-    font-weight: bold;
-}
-/* Estilos para o menu de produtos */
-.product-list {
+
+/* Layout de cartões */
+.card-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
     list-style: none;
     padding: 0;
+    margin: 0;
 }
-.product-list li {
-    background: #f9f9f9;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 8px;
-    border-left: 5px solid #007bff;
+
+.card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-align: center;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card h3 {
+    font-size: 1.3em;
+    font-weight: 500;
+    color: #3f51b5;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.card p {
+    margin: 0;
+    color: #555;
+}
+
+.product-price {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #007bff;
+    margin-top: 5px;
+}
+
+/* Estilos específicos para os cartões de ranking */
+.ranking-card {
+    text-align: left;
+    border-left: 5px solid #00c853;
+}
+
+.ranking-card .ranking-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.ranking-card .ranking-details span {
+    font-size: 0.9em;
+    color: #777;
+}
+
+.ranking-card .ranking-details .rating {
+    font-weight: bold;
+    color: #ff9800;
+}
+
+/* Mensagens de feedback */
+.message {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+    font-style: italic;
+}
+
+/* Rodapé */
+footer {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    font-size: 0.9em;
+    color: #999;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: center;
+}
+
+/* Ajuste no contêiner do rodapé para garantir que ele se alinhe corretamente */
+footer .container {
+    max-width: 900px;
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+    margin: 0 auto;
 }

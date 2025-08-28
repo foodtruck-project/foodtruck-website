@@ -11,8 +11,7 @@ const MENSAGENS_PUBLICO = {
 
 let rankingLoadingMessage;
 let noRankingMessage;
-let rankingTable;
-let rankingTableBody;
+let rankingList; // Alterado para uma div
 let menuLoadingMessage;
 let noMenuMessage;
 let menuList;
@@ -42,13 +41,23 @@ async function carregarProdutosDoMenu() {
 
         if (resultado && resultado.length > 0) {
             productsCache.clear();
-            const productList = document.createElement('ul');
-            productList.className = 'product-list';
+            const productList = document.createElement('div');
+            productList.className = 'card-list';
             resultado.forEach(product => {
-                productsCache.set(product.id, product.name); // Store product name by ID
-                const listItem = document.createElement('li');
-                listItem.textContent = `${product.name} - R$ ${product.price.toFixed(2)}`;
-                productList.appendChild(listItem);
+                productsCache.set(product.id, product.name);
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const productName = document.createElement('h3');
+                productName.textContent = product.name;
+
+                const productPrice = document.createElement('p');
+                productPrice.className = 'product-price';
+                productPrice.textContent = `R$ ${product.price.toFixed(2)}`;
+
+                card.appendChild(productName);
+                card.appendChild(productPrice);
+                productList.appendChild(card);
             });
             menuList.appendChild(productList);
         } else {
@@ -66,7 +75,7 @@ async function carregarProdutosDoMenu() {
 async function carregarTodosPedidosParaRanking() {
     rankingLoadingMessage.style.display = 'block';
     noRankingMessage.style.display = 'none';
-    rankingTable.style.display = 'none';
+    rankingList.innerHTML = ''; // Limpa a lista antes de carregar
     allOrdersDataForRanking = [];
 
     try {
@@ -98,7 +107,7 @@ async function carregarTodosPedidosParaRanking() {
 }
 
 function calcularEExibirRanking() {
-    rankingTableBody.innerHTML = '';
+    rankingList.innerHTML = '';
     const productStats = new Map();
 
     allOrdersDataForRanking.forEach(item => {
@@ -116,7 +125,6 @@ function calcularEExibirRanking() {
 
     if (productStats.size === 0) {
         noRankingMessage.style.display = 'block';
-        rankingTable.style.display = 'none';
         return;
     }
 
@@ -138,18 +146,36 @@ function calcularEExibirRanking() {
         return b.salesCount - a.salesCount;
     });
 
-    rankingArray.forEach(product => {
-        const row = rankingTableBody.insertRow();
-        const cell1 = row.insertCell(0);
-        const cell2 = row.insertCell(1);
-        const cell3 = row.insertCell(2);
+    const rankingCardList = document.createElement('div');
+    rankingCardList.className = 'card-list';
 
-        cell1.textContent = product.productName;
-        cell2.textContent = product.salesCount;
-        cell3.textContent = product.averageRating.toFixed(2);
+    rankingArray.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'card ranking-card';
+
+        const productName = document.createElement('h3');
+        productName.textContent = product.productName;
+        
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'ranking-details';
+
+        const salesSpan = document.createElement('span');
+        salesSpan.textContent = `Vendas: ${product.salesCount}`;
+        
+        const ratingSpan = document.createElement('span');
+        ratingSpan.className = 'rating';
+        ratingSpan.textContent = `Nota: ${product.averageRating.toFixed(2)} / 5`;
+
+        detailsContainer.appendChild(salesSpan);
+        detailsContainer.appendChild(ratingSpan);
+
+        card.appendChild(productName);
+        card.appendChild(detailsContainer);
+
+        rankingCardList.appendChild(card);
     });
 
-    rankingTable.style.display = 'table';
+    rankingList.appendChild(rankingCardList);
     noRankingMessage.style.display = 'none';
 }
 
@@ -157,8 +183,7 @@ function calcularEExibirRanking() {
 document.addEventListener('DOMContentLoaded', async () => {
     rankingLoadingMessage = document.getElementById('rankingLoadingMessage');
     noRankingMessage = document.getElementById('noRankingMessage');
-    rankingTable = document.getElementById('rankingTable');
-    rankingTableBody = document.getElementById('rankingTableBody');
+    rankingList = document.getElementById('rankingList');
     menuLoadingMessage = document.getElementById('menuLoadingMessage');
     noMenuMessage = document.getElementById('noMenuMessage');
     menuList = document.getElementById('menuList');
