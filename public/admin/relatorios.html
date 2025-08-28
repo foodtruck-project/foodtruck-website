@@ -9,11 +9,10 @@
 </head>
 <body>
     <header>
-        
         <div class="header-container">
             <h1>Food Truck - Relatório de Vendas</h1>
             <nav>
-                <a href="../atendente/menu.html"> Voltar </a>           
+                <a href="../atendente/menu.html"> Voltar </a>
             </nav>
         </div>
     </header>
@@ -52,6 +51,12 @@
             <h3>Resumo do Período</h3>
             <p><strong>Faturamento Total:</strong> <span id="totalRevenue">R$ 0,00</span></p>
             <p><strong>Total de Pedidos:</strong> <span id="totalOrders">0</span></p>
+        </div>
+
+        <div class="chart-container">
+            <h2>Faturamento por Produto</h2>
+            <canvas id="productRevenueChart"></canvas>
+            <p id="noProductRevenueDataMessage" style="display: none;">Nenhum dado de faturamento por produto encontrado para o período selecionado.</p>
         </div>
 
         <div id="loadingMessage" style="display: none;">Carregando dados...</div>

@@ -7,7 +7,8 @@ const MENSAGENS = {
     SESSAO_EXPIRADA: 'Sessão expirada ou acesso negado. Faça login novamente.',
     ERRO_CONFIGURACAO_API: 'Erro de configuração: API_BASE_URL não encontrada.',
     ERRO_CARREGAR_DADOS: 'Erro ao carregar dados do relatório:',
-    ERRO_CONEXAO_SERVIDOR: 'Não foi possível conectar ao servidor.'
+    ERRO_CONEXAO_SERVIDOR: 'Não foi possível conectar ao servidor.',
+    ERRO_CARREGAR_PRODUTOS: 'Erro ao carregar lista de produtos.'
 };
 
 const URLS = {
@@ -15,13 +16,15 @@ const URLS = {
 };
 
 // --- Variáveis de Estado e Referências Globais ---
-let salesChart = null; // Instância do gráfico Chart.js
+let salesChart = null; // Instância do gráfico Chart.js de vendas
+let productRevenueChart = null; // Nova instância para o gráfico de faturamento por produto
+let productsCache = new Map(); // Cache para armazenar ID do produto -> { nome: '...', preco: '...' }
 
 // --- Funções Auxiliares (reutilizadas de outros scripts) ---
-
 const obterTokenAcesso = () => localStorage.getItem('accessToken');
 const removerDadosSessao = () => { localStorage.removeItem('accessToken'); };
 const redirecionarParaLogin = () => { window.location.href = URLS.LOGIN; };
+
 function lidarComErroAutenticacao(resposta) {
     if (resposta.status === 401 || resposta.status === 403) {
         alert(MENSAGENS.SESSAO_EXPIRADA);
@@ -30,6 +33,42 @@ function lidarComErroAutenticacao(resposta) {
         return true;
     }
     return false;
+}
+
+/**
+ * Carrega todos os produtos da API e preenche o productsCache.
+ */
+async function carregarProdutos() {
+    try {
+        const resposta = await fetch(`${API_BASE_URL}/api/v1/products/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${obterTokenAcesso()}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (lidarComErroAutenticacao(resposta)) {
+            return false;
+        }
+
+        const resultado = await resposta.json();
+
+        if (resposta.ok && resultado.products) {
+            productsCache.clear();
+            resultado.products.forEach(product => {
+                productsCache.set(product.id, { name: product.name, price: product.price });
+            });
+            console.log('Cache de produtos preenchido.');
+            return true;
+        } else {
+            console.error(MENSAGENS.ERRO_CARREGAR_PRODUTOS, resultado.detail || resposta.statusText);
+            return false;
+        }
+    } catch (error) {
+        console.error('Erro na requisição de produtos:', error);
+        return false;
+    }
 }
 
 // --- Funções de Processamento de Dados ---
@@ -61,6 +100,42 @@ function processarDadosVendas(pedidos, agrupamento) {
     const data = labels.map(label => dadosAgrupados[label]);
     return { labels, data };
 }
+
+/**
+ * Calcula o faturamento total por produto.
+ * @param {Array<Object>} pedidos - Lista de pedidos concluídos.
+ * @returns {{labels: Array<string>, data: Array<number>}} Objeto com labels e dados para o gráfico.
+ */
+function processarFaturamentoPorProduto(pedidos) {
+    const revenueByProduct = new Map();
+    pedidos.forEach(pedido => {
+        pedido.products.forEach(item => {
+            const productId = item.product_id;
+            const productInfo = productsCache.get(productId);
+
+            if (productInfo) {
+                const total = item.quantity * productInfo.price;
+                const currentRevenue = revenueByProduct.get(productId) || 0;
+                revenueByProduct.set(productId, currentRevenue + total);
+            }
+        });
+    });
+
+    const labels = [];
+    const data = [];
+
+    // Ordena por faturamento, do maior para o menor
+    Array.from(revenueByProduct.entries())
+         .sort(([, a], [, b]) => b - a)
+         .forEach(([productId, totalRevenue]) => {
+             const productName = productsCache.get(productId)?.name || `Produto Desconhecido (${productId})`;
+             labels.push(productName);
+             data.push(totalRevenue);
+         });
+
+    return { labels, data };
+}
+
 
 // --- Funções de Renderização na UI ---
 
@@ -120,6 +195,59 @@ function renderizarGrafico(labels, data) {
     });
 }
 
+function renderizarGraficoFaturamentoPorProduto(labels, data) {
+    const ctx = document.getElementById('productRevenueChart').getContext('2d');
+    const noDataMessage = document.getElementById('noProductRevenueDataMessage');
+
+    if (data.length === 0) {
+        noDataMessage.style.display = 'block';
+        if (productRevenueChart) productRevenueChart.destroy();
+        return;
+    }
+
+    noDataMessage.style.display = 'none';
+    if (productRevenueChart) { productRevenueChart.destroy(); }
+    
+    // Cores dinâmicas para o gráfico
+    const backgroundColors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#E7E9ED', '#8B4513', '#228B22', '#CD5C5C'
+    ];
+    
+    productRevenueChart = new Chart(ctx, {
+        type: 'doughnut', // Gráfico de rosca é bom para fatias de um todo
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors.slice(0, labels.length),
+                hoverBackgroundColor: backgroundColors.slice(0, labels.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((sum, current) => sum + current, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(2) : 0;
+                            const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+                            return `${label}: ${formattedValue} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 function atualizarResumo(pedidos) {
     const faturamentoTotal = pedidos.reduce((acc, pedido) => acc + pedido.total, 0);
     const totalPedidos = pedidos.length;
@@ -139,13 +267,14 @@ async function carregarRelatorio() {
     noDataMessage.style.display = 'none';
     document.querySelector('.chart-container').style.display = 'none';
     document.getElementById('summary').style.display = 'none';
+    document.getElementById('productRevenueChart').style.display = 'none';
+    document.getElementById('noProductRevenueDataMessage').style.display = 'none';
 
     const agrupamento = groupingSelect.value;
     const selectedRange = dateRangeSelect.value;
     
     let startDate, endDate;
 
-    // Se a opção "Todo o período" for selecionada, não calculamos a data inicial ainda.
     if (selectedRange !== 'allTime') {
         const period = calcularPeriodo(selectedRange);
         startDate = period.startDate;
@@ -153,6 +282,14 @@ async function carregarRelatorio() {
     }
 
     try {
+        // Primeiro, carregue a lista de produtos
+        const produtosCarregados = await carregarProdutos();
+        if (!produtosCarregados) {
+             loadingMessage.style.display = 'none';
+             return;
+        }
+
+        // Em seguida, carregue os pedidos
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/`, {
             method: 'GET',
             headers: {
@@ -172,9 +309,7 @@ async function carregarRelatorio() {
         if (resposta.ok && resultado.orders?.length > 0) {
             let pedidosParaFiltrar = resultado.orders;
 
-            // **Nova lógica para a opção "Todo o período"**
             if (selectedRange === 'allTime') {
-                // Encontra a data mais antiga dos pedidos
                 const minDate = new Date(Math.min(...pedidosParaFiltrar.map(p => new Date(p.created_at))));
                 startDate = minDate.toISOString().split('T')[0];
                 endDate = new Date().toISOString().split('T')[0];
@@ -192,29 +327,39 @@ async function carregarRelatorio() {
             
 
             if (pedidosFiltrados.length > 0) {
+                // Faturamento por período (gráfico 1)
                 const { labels, data } = processarDadosVendas(pedidosFiltrados, agrupamento);
                 
                 document.querySelector('.chart-container').style.display = 'block';
                 document.getElementById('summary').style.display = 'block';
+                document.getElementById('productRevenueChart').style.display = 'block';
                 
                 renderizarGrafico(labels, data);
                 atualizarResumo(pedidosFiltrados);
+
+                // Faturamento por produto (gráfico 2)
+                const { labels: productLabels, data: productData } = processarFaturamentoPorProduto(pedidosFiltrados);
+                renderizarGraficoFaturamentoPorProduto(productLabels, productData);
             } else {
                 noDataMessage.style.display = 'block';
                 if (salesChart) salesChart.destroy();
+                if (productRevenueChart) productRevenueChart.destroy();
                 atualizarResumo([]);
+                document.getElementById('noProductRevenueDataMessage').style.display = 'block';
             }
         } else {
             noDataMessage.style.display = 'block';
             if (salesChart) salesChart.destroy();
+            if (productRevenueChart) productRevenueChart.destroy();
             atualizarResumo([]);
+            document.getElementById('noProductRevenueDataMessage').style.display = 'block';
         }
-
     } catch (error) {
         console.error(MENSAGENS.ERRO_CARREGAR_DADOS, error);
         loadingMessage.style.display = 'none';
         noDataMessage.textContent = MENSAGENS.ERRO_CONEXAO_SERVIDOR;
         noDataMessage.style.display = 'block';
+        document.getElementById('noProductRevenueDataMessage').style.display = 'block';
     }
 }
 
