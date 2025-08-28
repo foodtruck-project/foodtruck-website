@@ -25,11 +25,10 @@ async function carregarProdutosDoMenu() {
     menuLoadingMessage.style.display = 'block';
     noMenuMessage.style.display = 'none';
     menuList.innerHTML = '';
-    
+
     try {
-        // Chamando a nova rota pública
         const resposta = await fetch(`${API_BASE_URL}/api/v1/products/public`);
-        
+
         if (!resposta.ok) {
             const resultado = await resposta.json();
             console.error(MENSAGENS_PUBLICO.ERRO_CARREGAR_PRODUTOS, resultado.detail || resultado.message || resposta.statusText);
@@ -38,15 +37,15 @@ async function carregarProdutosDoMenu() {
             menuLoadingMessage.style.display = 'none';
             return;
         }
-        
+
         const resultado = await resposta.json();
-        
+
         if (resultado && resultado.length > 0) {
             productsCache.clear();
             const productList = document.createElement('ul');
             productList.className = 'product-list';
             resultado.forEach(product => {
-                // A nova rota retorna nome e preço. O ID não está disponível aqui.
+                productsCache.set(product.id, product.name); // Store product name by ID
                 const listItem = document.createElement('li');
                 listItem.textContent = `${product.name} - R$ ${product.price.toFixed(2)}`;
                 productList.appendChild(listItem);
@@ -71,11 +70,7 @@ async function carregarTodosPedidosParaRanking() {
     allOrdersDataForRanking = [];
 
     try {
-        const queryParams = new URLSearchParams();
-        queryParams.append('status', 'COMPLETED');
-        queryParams.append('limit', 1000);
-
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`);
+        const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/public_product_info`);
 
         if (!resposta.ok) {
             const resultado = await resposta.json();
@@ -85,11 +80,16 @@ async function carregarTodosPedidosParaRanking() {
             rankingLoadingMessage.style.display = 'none';
             return;
         }
-        
-        const resultado = await resposta.json();
-        allOrdersDataForRanking = resultado.orders;
+
+        const publicProductData = await resposta.json();
+
+        if (publicProductData && publicProductData.length > 0) {
+            allOrdersDataForRanking = publicProductData;
+        } else {
+            noRankingMessage.style.display = 'block';
+        }
     } catch (error) {
-        console.error('Erro na requisição de pedidos para ranking:', error);
+        console.error('Erro na requisição de dados para ranking:', error);
         noRankingMessage.textContent = MENSAGENS_PUBLICO.ERRO_CONEXAO_SERVIDOR;
         noRankingMessage.style.display = 'block';
     } finally {
@@ -99,21 +99,18 @@ async function carregarTodosPedidosParaRanking() {
 
 function calcularEExibirRanking() {
     rankingTableBody.innerHTML = '';
-
     const productStats = new Map();
 
-    allOrdersDataForRanking.forEach(order => {
-        if (order.status.toUpperCase() === 'COMPLETED' && order.rating !== undefined && order.rating !== null) {
-            order.products.forEach(item => {
-                const productId = item.product_id;
-                if (!productStats.has(productId)) {
-                    productStats.set(productId, { totalRating: 0, countRating: 0, salesCount: 0 });
-                }
-                const stats = productStats.get(productId);
-                stats.totalRating += order.rating;
-                stats.countRating++;
-                stats.salesCount += item.quantity;
-            });
+    allOrdersDataForRanking.forEach(item => {
+        if (item.rating !== undefined && item.rating !== null) {
+            const productId = item.product_id;
+            if (!productStats.has(productId)) {
+                productStats.set(productId, { totalRating: 0, countRating: 0, salesCount: 0 });
+            }
+            const stats = productStats.get(productId);
+            stats.totalRating += item.rating;
+            stats.countRating++;
+            stats.salesCount += item.quantity;
         }
     });
 
@@ -158,7 +155,6 @@ function calcularEExibirRanking() {
 
 // Lógica de inicialização para a página pública
 document.addEventListener('DOMContentLoaded', async () => {
-    // Atribuições das referências DOM
     rankingLoadingMessage = document.getElementById('rankingLoadingMessage');
     noRankingMessage = document.getElementById('noRankingMessage');
     rankingTable = document.getElementById('rankingTable');
