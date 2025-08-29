@@ -1,6 +1,10 @@
 // public/atendente/relatorios.js
 // Lógica para gerar relatórios de vendas com gráficos.
 
+// --- Registra o plugin de DataLabels ---
+// Acessa a variável global 'ChartDataLabels' que é criada pelo script do plugin.
+Chart.register(ChartDataLabels);
+
 // --- Constantes para Mensagens e URLs ---
 const MENSAGENS = {
     AUTENTICACAO_NECESSARIA: 'Você precisa estar logado para acessar esta página.',
@@ -262,6 +266,20 @@ function renderizarGrafico(labels, data) {
                             return label;
                         }
                     }
+                },
+                datalabels: { // Configuração do plugin de data labels
+                    anchor: 'center',
+                    align: 'top',
+                    formatter: function(value, context) {
+                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+                    },
+                    backgroundColor: 'rgba(247, 241, 241, 0.6)',
+                    borderRadius: 10,
+                    color: '#333',
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    }
                 }
             }
         }
@@ -314,6 +332,22 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
                             return `${label}: ${formattedRevenue} (${percentage}%) - Qtd: ${quantity}`;
                         }
                     }
+                },
+                datalabels: { // Configuração do plugin de data labels
+                    backgroundColor: 'rgba(247, 241, 241, 0.6)',
+                    borderRadius: 10,
+                    color: '#302e2eff',
+                    formatter: (value, context) => {
+                        const totalRevenue = context.dataset.data.reduce((sum, current) => sum + current, 0);
+                        const percentage = totalRevenue > 0 ? ((value / totalRevenue) * 100).toFixed(1) : 0;
+                        return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}\n(${percentage}%)`;
+                    },
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    },
+               
+                    
                 }
             }
         }
@@ -377,12 +411,29 @@ function renderizarGraficoEvolucaoProdutos(labels, datasets) {
                             return `${label}: ${formattedValue} - Qtd: ${quantity}`;
                         }
                     }
+                },
+                datalabels: {
+                    anchor: 'center',
+                    align: 'center',
+                    formatter: function (value, context) {
+                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value.y);
+                    },
+                    // A propriedade 'display' agora é uma função
+                    display: (context) => context.dataset.data[context.dataIndex].y !== 0,
+                    // A propriedade 'backgroundColor' agora é uma função
+                    backgroundColor: (context) => context.dataset.data[context.dataIndex].y !== 0 ? 'rgba(247, 241, 241, 0.6)' : 'transparent',
+                    color: '#333',
+                    padding: 4,
+                    borderRadius: 4,
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    }
                 }
             }
         }
     });
 }
-
 function atualizarResumo(pedidos) {
     const faturamentoTotal = pedidos.reduce((acc, pedido) => acc + pedido.total, 0);
     const totalPedidos = pedidos.length;
