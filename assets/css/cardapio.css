@@ -243,3 +243,8 @@ footer .container {
     font-size: 0.9em;
     color: #666;
 }
+
+.menu-heading {
+    color: #000; /* Define a cor do texto para preto */
+    padding-bottom: 0;
+}
