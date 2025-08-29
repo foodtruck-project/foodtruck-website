@@ -176,3 +176,8 @@ footer .container {
     box-shadow: none;
     margin: 0 auto;
 }
+
+.scrollable-list {
+    max-height: 300px; /* Ou a altura que você preferir */
+    overflow-y: auto;
+}
