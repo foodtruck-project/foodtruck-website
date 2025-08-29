@@ -30,7 +30,7 @@ async function carregarProdutosDoMenu() {
     drinkList.innerHTML = '';
 
     try {
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/products/public`);
+        const resposta = await fetch(`${API_BASE_URL}/api/v1/public/products`);
 
         if (!resposta.ok) {
             const resultado = await resposta.json();
@@ -95,7 +95,7 @@ async function carregarTodosPedidosParaRanking() {
     allOrdersDataForRanking = [];
 
     try {
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/public_product_info`);
+        const resposta = await fetch(`${API_BASE_URL}/api/v1/public/orders/`);
 
         if (!resposta.ok) {
             const resultado = await resposta.json();
