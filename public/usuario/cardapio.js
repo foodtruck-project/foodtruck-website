@@ -11,10 +11,13 @@ const MENSAGENS_PUBLICO = {
 
 let rankingLoadingMessage;
 let noRankingMessage;
-let rankingList; // Alterado para uma div
+let rankingList; // Manter para compatibilidade ou remover se não for mais usado diretamente
+let rankingColumn1; // Novo
+let rankingColumn2; // Novo
 let menuLoadingMessage;
 let noMenuMessage;
-let menuList;
+let foodList;
+let drinkList;
 
 let productsCache = new Map();
 let allOrdersDataForRanking = [];
@@ -23,7 +26,8 @@ let allOrdersDataForRanking = [];
 async function carregarProdutosDoMenu() {
     menuLoadingMessage.style.display = 'block';
     noMenuMessage.style.display = 'none';
-    menuList.innerHTML = '';
+    foodList.innerHTML = '';
+    drinkList.innerHTML = '';
 
     try {
         const resposta = await fetch(`${API_BASE_URL}/api/v1/products/public`);
@@ -41,8 +45,11 @@ async function carregarProdutosDoMenu() {
 
         if (resultado && resultado.length > 0) {
             productsCache.clear();
-            const productList = document.createElement('div');
-            productList.className = 'card-list';
+            const foodCardList = document.createElement('div');
+            foodCardList.className = 'card-list';
+            const drinkCardList = document.createElement('div');
+            drinkCardList.className = 'card-list';
+
             resultado.forEach(product => {
                 productsCache.set(product.id, product.name);
                 const card = document.createElement('div');
@@ -57,9 +64,17 @@ async function carregarProdutosDoMenu() {
 
                 card.appendChild(productName);
                 card.appendChild(productPrice);
-                productList.appendChild(card);
+
+                if (product.category === 'FOOD') {
+                    foodCardList.appendChild(card);
+                } else if (product.category === 'DRINK') {
+                    drinkCardList.appendChild(card);
+                }
             });
-            menuList.appendChild(productList);
+
+            foodList.appendChild(foodCardList);
+            drinkList.appendChild(drinkCardList);
+
         } else {
             noMenuMessage.style.display = 'block';
         }
@@ -75,7 +90,8 @@ async function carregarProdutosDoMenu() {
 async function carregarTodosPedidosParaRanking() {
     rankingLoadingMessage.style.display = 'block';
     noRankingMessage.style.display = 'none';
-    rankingList.innerHTML = ''; // Limpa a lista antes de carregar
+    rankingColumn1.innerHTML = ''; // Limpa a coluna 1
+    rankingColumn2.innerHTML = ''; // Limpa a coluna 2
     allOrdersDataForRanking = [];
 
     try {
@@ -107,7 +123,8 @@ async function carregarTodosPedidosParaRanking() {
 }
 
 function calcularEExibirRanking() {
-    rankingList.innerHTML = '';
+    rankingColumn1.innerHTML = ''; // Garante que as colunas estejam limpas antes de adicionar
+    rankingColumn2.innerHTML = ''; // Garante que as colunas estejam limpas antes de adicionar
     const productStats = new Map();
 
     allOrdersDataForRanking.forEach(item => {
@@ -146,10 +163,13 @@ function calcularEExibirRanking() {
         return b.salesCount - a.salesCount;
     });
 
-    const rankingCardList = document.createElement('div');
-    rankingCardList.className = 'card-list';
+    // Criar um div 'card-list' para cada coluna para manter a consistência de estilo
+    const rankingCardList1 = document.createElement('div');
+    rankingCardList1.className = 'card-list';
+    const rankingCardList2 = document.createElement('div');
+    rankingCardList2.className = 'card-list';
 
-    rankingArray.forEach(product => {
+    rankingArray.forEach((product, index) => {
         const card = document.createElement('div');
         card.className = 'card ranking-card';
 
@@ -172,10 +192,16 @@ function calcularEExibirRanking() {
         card.appendChild(productName);
         card.appendChild(detailsContainer);
 
-        rankingCardList.appendChild(card);
+        // Alterna entre as duas colunas
+        if (index % 2 === 0) {
+            rankingCardList1.appendChild(card);
+        } else {
+            rankingCardList2.appendChild(card);
+        }
     });
 
-    rankingList.appendChild(rankingCardList);
+    rankingColumn1.appendChild(rankingCardList1);
+    rankingColumn2.appendChild(rankingCardList2);
     noRankingMessage.style.display = 'none';
 }
 
@@ -183,10 +209,13 @@ function calcularEExibirRanking() {
 document.addEventListener('DOMContentLoaded', async () => {
     rankingLoadingMessage = document.getElementById('rankingLoadingMessage');
     noRankingMessage = document.getElementById('noRankingMessage');
-    rankingList = document.getElementById('rankingList');
+    // rankingList = document.getElementById('rankingList'); // Este ID não será mais usado diretamente
+    rankingColumn1 = document.getElementById('rankingColumn1'); // Novo
+    rankingColumn2 = document.getElementById('rankingColumn2'); // Novo
     menuLoadingMessage = document.getElementById('menuLoadingMessage');
     noMenuMessage = document.getElementById('noMenuMessage');
-    menuList = document.getElementById('menuList');
+    foodList = document.getElementById('foodList');
+    drinkList = document.getElementById('drinkList');
     
     if (typeof API_BASE_URL === 'undefined') {
         alert(MENSAGENS_PUBLICO.ERRO_CONFIGURACAO_API);
