@@ -19,7 +19,16 @@
             <section id="product-menu-section">
                 <h2>Nosso Menu</h2>
                 <div id="menuLoadingMessage" class="message">Carregando menu...</div>
-                <div id="menuList"></div>
+               <div class="menu-columns">
+                    <div class="menu-column">
+                        <h3 class="menu-heading">Lanche</h3>
+                        <div id="foodList" class="scrollable-list"></div>
+                    </div>
+                    <div class="menu-column">
+                        <h3 class="menu-heading">Bebida</h3>
+                        <div id="drinkList" class="scrollable-list"></div>
+                    </div>
+                </div>
                 <p id="noMenuMessage" class="message" style="display: none;">Nenhum item disponível no menu no momento.</p>
             </section>
 
@@ -28,7 +37,10 @@
             <section id="product-ranking-section">
                 <h2>Ranking de Produtos Avaliados</h2>
                 <div id="rankingLoadingMessage" class="message">Carregando ranking...</div>
-                <div id="rankingList"></div>
+                <div class="ranking-columns">
+                    <div id="rankingColumn1" class="ranking-column scrollable-list-ranking"></div>
+                    <div id="rankingColumn2" class="ranking-column scrollable-list-ranking"></div>
+                </div>
                 <p id="noRankingMessage" class="message" style="display: none;">Nenhum produto avaliado ainda.</p>
             </section>
         </main>

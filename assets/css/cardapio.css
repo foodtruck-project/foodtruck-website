@@ -48,7 +48,8 @@ body {
 /* O resto do CSS permanece o mesmo ou com ajustes para legibilidade */
 .container {
     flex-grow: 1;
-    max-width: 900px;
+    max-width: 600px; 
+    margin-top: 0;
     margin-left: auto;
     margin-right: 80px;
     padding: 20px;
@@ -175,4 +176,75 @@ footer .container {
     background-color: transparent;
     box-shadow: none;
     margin: 0 auto;
+}
+
+.scrollable-list {
+    max-height: 290px; /* Ou a altura que você preferir */
+    overflow-y: auto;
+}
+
+.scrollable-list-ranking {
+    max-height: 280px; /* Ou a altura que você preferir */
+    overflow-y: auto;
+}
+
+
+/* Estilos para o menu (já existentes ou atualizados) */
+.menu-columns {
+    display: flex;
+    gap: 20px; /* Espaço entre as colunas */
+}
+
+.menu-column {
+    flex: 1; /* Faz com que as colunas ocupem o mesmo espaço */
+}
+
+/* Novos estilos para o ranking */
+.ranking-columns {
+    display: flex;
+    gap: 20px; /* Espaço entre as colunas do ranking */
+}
+
+.ranking-column {
+    flex: 1; /* Faz com que as colunas do ranking ocupem o mesmo espaço */
+}
+
+
+.card-list { /* Pode ser mantido para estilizar os grupos de cards dentro das colunas */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Adicionar um pouco de margem inferior para os cards se precisar */
+.card {
+    margin-bottom: 10px;
+}
+
+/* Seus estilos para .ranking-card, .ranking-details, .rating, etc. */
+.ranking-card {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.ranking-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.ranking-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.menu-heading {
+    color: #000; /* Define a cor do texto para preto */
+    padding-bottom: 0;
 }
