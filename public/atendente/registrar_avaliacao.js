@@ -418,7 +418,7 @@ async function carregarPedidosAvaliados() {
                         ${renderOrderProducts(pedido.products)} <div class="current-rating">Nota Atual: <strong>${pedido.rating.toFixed(1)}</strong></div>
                         <div class="rating-edit-group">
                             <label for="editRating-${pedido.id}">Nova Nota:</label>
-                            <input type="number" id="editRating-${pedido.id}" min="0" max="5" step="0.5" value="${pedido.rating}">
+                            <input type="number" id="editRating-${pedido.id}" min="0" max="5" step="1" value="${pedido.rating}">
                             <button class="btn-secondary update-evaluated-rating-btn" data-order-id="${pedido.id}" data-order-locator="${pedido.locator}">Atualizar</button>
                         </div>
                     `;
