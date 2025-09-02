@@ -45,8 +45,7 @@ let evaluatedOrdersList;
 // Elementos da seção "Ranking de Produtos"
 let rankingLoadingMessage;
 let noRankingMessage;
-let rankingTable;
-let rankingTableBody;
+let rankingList;
 
 // Variáveis globais para dados
 let currentSelectedOrderId = null; // Armazena o ID do pedido atualmente selecionado para atribuição de nota
@@ -365,7 +364,7 @@ async function updateOrderRating(orderId, orderLocator, rating, messageElement =
 
 // Event listener para o botão de atribuir nota na seção de novos pedidos
 async function handleSubmitNewRating() {
-    await updateOrderRating(currentSelectedOrderId, currentSelectedOrderLocator, parseFloat(orderRatingInput.value));
+    await updateOrderRating(currentSelectedOrderId, currentSelectedOrderLocator, parseInt(orderRatingInput.value));
 }
 
 
@@ -431,7 +430,7 @@ async function carregarPedidosAvaliados() {
                         const orderId = event.target.dataset.orderId;
                         const orderLocator = event.target.dataset.orderLocator;
                         const ratingInput = document.getElementById(`editRating-${orderId}`);
-                        const newRating = parseFloat(ratingInput.value);
+                        const newRating = parseInt(ratingInput.value);
                         await updateOrderRating(orderId, orderLocator, newRating, event.target); // Passa o elemento para showCardMessage
                     });
                 });
@@ -457,7 +456,7 @@ async function carregarPedidosAvaliados() {
 async function carregarTodosPedidosParaRanking() {
     rankingLoadingMessage.style.display = 'block';
     noRankingMessage.style.display = 'none';
-    rankingTable.style.display = 'none';
+    rankingList.style.display = 'none';
     allOrdersDataForRanking = []; // Limpa dados anteriores
 
     try {
@@ -501,7 +500,7 @@ async function carregarTodosPedidosParaRanking() {
  * Calcula e exibe o ranking dos produtos com base nas notas dos pedidos.
  */
 function calcularEExibirRanking() {
-    rankingTableBody.innerHTML = ''; // Limpa o corpo da tabela
+    rankingList.innerHTML = ''; // Limpa a lista
 
     const productStats = new Map(); // Map: productId -> { totalRating: number, countRating: number, salesCount: number }
 
@@ -525,7 +524,7 @@ function calcularEExibirRanking() {
 
     if (productStats.size === 0) {
         noRankingMessage.style.display = 'block';
-        rankingTable.style.display = 'none';
+        rankingList.style.display = 'none';
         return;
     }
 
@@ -548,19 +547,21 @@ function calcularEExibirRanking() {
         return b.salesCount - a.salesCount;
     });
 
-    // Preenche a tabela
+    // Preenche com cards
     rankingArray.forEach(product => {
-        const row = rankingTableBody.insertRow();
-        const cell1 = row.insertCell(0);
-        const cell2 = row.insertCell(1);
-        const cell3 = row.insertCell(2);
-
-        cell1.textContent = product.productName;
-        cell2.textContent = product.salesCount;
-        cell3.textContent = product.averageRating.toFixed(2); // Exibe com 2 casas decimais
+        const card = document.createElement('div');
+        card.className = 'ranking-card';
+        card.innerHTML = `
+            <h4>${product.productName}</h4>
+            <div class="ranking-details">
+                <p>Vendas: <strong>${product.salesCount}</strong></p>
+            </div>
+            <div class="average-rating">${product.averageRating.toFixed(2)}</div>
+        `;
+        rankingList.appendChild(card);
     });
 
-    rankingTable.style.display = 'table';
+    rankingList.style.display = 'grid';
     noRankingMessage.style.display = 'none';
 }
 
@@ -590,8 +591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Seção de Ranking
     rankingLoadingMessage = document.getElementById('rankingLoadingMessage');
     noRankingMessage = document.getElementById('noRankingMessage');
-    rankingTable = document.getElementById('rankingTable');
-    rankingTableBody = document.getElementById('rankingTableBody');
+    rankingList = document.getElementById('rankingList');
 
     const accessToken = obterTokenAcesso();
 

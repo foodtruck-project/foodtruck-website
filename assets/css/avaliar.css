@@ -222,3 +222,51 @@
     /* ... mantenha os estilos existentes ... */
     padding-top: 10px; /* Garante espaço após a lista de produtos */
 }
+
+/* Estilos para o Ranking de Produtos em formato de Card */
+.ranking-list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.ranking-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.ranking-card h4 {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    color: #333;
+}
+
+.ranking-card .ranking-details {
+    width: 100%;
+    text-align: center;
+}
+
+.ranking-card .ranking-details p {
+    margin: 5px 0;
+    font-size: 1em;
+    color: #555;
+}
+
+.ranking-card .ranking-details strong {
+    color: #007bff;
+    font-size: 1.2em;
+}
+
+.ranking-card .average-rating {
+    margin-top: 10px;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #28a745; /* Verde para a média */
+}
