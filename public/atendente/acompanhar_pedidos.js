@@ -145,9 +145,9 @@ async function carregarProdutos() {
 
         const resultado = await resposta.json();
 
-        if (resposta.ok && resultado.products) {
+        if (resposta.ok && resultado.items) { // ALTERADO AQUI
             productsCache.clear(); // Limpa o cache antes de preencher
-            resultado.products.forEach(product => {
+            resultado.items.forEach(product => { // E AQUI
                 productsCache.set(product.id, product.name);
             });
             console.log('Cache de produtos preenchido:', productsCache);
@@ -188,33 +188,31 @@ async function carregarTodosPedidos() {
 
     try {
         const queryParams = new URLSearchParams();
-        // Adiciona todos os status que queremos exibir
         Object.values(STATUS_PEDIDO).forEach(status => queryParams.append('status', status));
 
-        // Constrói a URL da API. Assume que API_BASE_URL NÃO termina com barra.
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
+        const accessToken = obterTokenAcesso(); // Get token once
+
+        // 1. Fetch initial orders list
+        const respostaPedidos = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${obterTokenAcesso()}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/json'
             }
         });
 
-        if (lidarComErroAutenticacao(resposta)) {
+        if (lidarComErroAutenticacao(respostaPedidos)) {
             loadingMessage.style.display = 'none';
             return;
         }
 
-        const resultado = await resposta.json();
+        const resultadoPedidos = await respostaPedidos.json();
 
-        if (resposta.ok) {
-            let pedidos = resultado.orders; // Obtenha o array de pedidos
-            loadingMessage.style.display = 'none';
+        if (respostaPedidos.ok) {
+            let pedidos = resultadoPedidos.orders;
 
             // --- Aplica o filtro de data no frontend se `isFilteredByToday` for true ---
             if (isFilteredByToday && pedidos?.length) {
-                // Forma mais robusta de comparar datas no mesmo fuso horário.
-                // Formata a data para o padrão YYYY-MM-DD no fuso de São Paulo.
                 const dateFormatter = new Intl.DateTimeFormat('en-CA', {
                     timeZone: 'America/Sao_Paulo',
                     year: 'numeric',
@@ -229,23 +227,53 @@ async function carregarTodosPedidos() {
                 });
             }
 
-            if (!pedidos?.length) { // Verifica se não há pedidos após o filtro
+            // 2. Fetch items for each order (N+1 problem)
+            const itemFetchPromises = pedidos.map(async pedido => {
+                try {
+                    const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (lidarComErroAutenticacao(respostaItens)) {
+                        return { pedidoId: pedido.id, items: [] }; // Return empty if auth fails
+                    }
+
+                    const resultadoItens = await respostaItens.json();
+                    if (respostaItens.ok && resultadoItens.order_items) {
+                        pedido.products = resultadoItens.order_items; // Attach items to the order object
+                    } else {
+                        console.error(`Erro ao carregar itens do pedido ${pedido.id}:`, resultadoItens.detail || resultadoItens.message || respostaItens.statusText);
+                        pedido.products = []; // Ensure products array exists even on error
+                    }
+                } catch (error) {
+                    console.error(`Erro na requisição de itens para o pedido ${pedido.id}:`, error);
+                    pedido.products = []; // Ensure products array exists even on network error
+                }
+                return pedido; // Return the modified pedido
+            });
+
+            // Wait for all item fetches to complete
+            pedidos = await Promise.all(itemFetchPromises);
+
+            loadingMessage.style.display = 'none'; // Hide loading message after all fetches
+
+            if (!pedidos?.length) {
                 noOrdersMessage.style.display = 'block';
             } else {
-                // Itera sobre os pedidos e os distribui nas colunas
                 pedidos.forEach(pedido => {
-                    // AQUI ESTÁ A MUDANÇA: 'products' em vez de 'items'
-                    const { id, locator, status, products, notes, total, created_at } = pedido; 
-                    
+                    const { id, locator, status, products, notes, total, created_at } = pedido;
+
                     const statusExibicao = status.toUpperCase();
 
                     const cartaoPedido = document.createElement('div');
                     cartaoPedido.classList.add('order-card', statusExibicao.toLowerCase());
 
-                    // Agora passamos 'products' para a função gerarHtmlItensPedido
-                    const htmlItens = gerarHtmlItensPedido(products); 
+                    const htmlItens = gerarHtmlItensPedido(products);
 
-                    // --- Regras de Transição de Status ---
                     const transicoesStatus = {
                         [STATUS_PEDIDO.PENDENTE]: [STATUS_PEDIDO.CANCELADO],
                         [STATUS_PEDIDO.EM_PREPARACAO]: [STATUS_PEDIDO.CANCELADO],
@@ -284,7 +312,6 @@ async function carregarTodosPedidos() {
                             <span class="order-id-display">ID: ${id.substring(0, 8)}...</span>
                         </div>
                     `;
-                    // Adiciona o cartão à coluna correta com base no status
                     switch (statusExibicao) {
                         case STATUS_PEDIDO.PENDENTE:
                             pendingOrdersList.appendChild(cartaoPedido);
@@ -307,21 +334,18 @@ async function carregarTodosPedidos() {
                     }
                 });
 
-                // Atualiza os contadores exibidos na UI
                 countPending.textContent = ` (${contagens.PENDING})`;
                 countProcessing.textContent = ` (${contagens.PROCESSING})`;
                 countCompleted.textContent = ` (${contagens.COMPLETED})`;
                 countCancelled.textContent = ` (${contagens.CANCELLED})`;
             }
         } else {
-            // Lida com erros na resposta da API (ex: 400 Bad Request, 500 Internal Server Error)
             loadingMessage.style.display = 'none';
-            noOrdersMessage.textContent = `${MENSAGENS.ERRO_CARREGAR_PEDIDOS} ${resultado.detail || resultado.message || resposta.statusText}`;
+            noOrdersMessage.textContent = `${MENSAGENS.ERRO_CARREGAR_PEDIDOS} ${resultadoPedidos.detail || resultadoPedidos.message || respostaPedidos.statusText}`;
             noOrdersMessage.style.display = 'block';
-            console.error(MENSAGENS.ERRO_CARREGAR_PEDIDOS, resultado.detail || resultado.message || resposta.statusText);
+            console.error(MENSAGENS.ERRO_CARREGAR_PEDIDOS, resultadoPedidos.detail || resultadoPedidos.message || respostaPedidos.statusText);
         }
     } catch (error) {
-        // Lida com erros de rede ou outros erros que impedem a requisição
         console.error('Erro na requisição de pedidos:', error);
         loadingMessage.style.display = 'none';
         noOrdersMessage.textContent = MENSAGENS.ERRO_CONEXAO_SERVIDOR;

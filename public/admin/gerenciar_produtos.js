@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (data) {
             ELEMENTS.productsList.innerHTML = '';
-            const items = data.products;
+            const items = data.items;
 
             if (!items || items.length === 0) {
                 ELEMENTS.productsList.innerHTML = `<li>${MESSAGES.noProductsFound}</li>`;
