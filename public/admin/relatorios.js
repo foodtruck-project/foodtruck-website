@@ -68,11 +68,11 @@ async function carregarProdutos() {
 
         const resultado = await resposta.json();
 
-        if (resposta.ok && resultado.products) {
+        if (resposta.ok && resultado.itens) {
             productsCache.clear();
             productColorsCache.clear();
             let colorIndex = 0;
-            resultado.products.forEach(product => {
+            resultado.itens.forEach(product => {
                 productsCache.set(product.id, { name: product.name, price: product.price });
                 const color = predefinedColors[colorIndex % predefinedColors.length];
                 productColorsCache.set(product.id, color);
