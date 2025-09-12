@@ -145,9 +145,9 @@ async function carregarProdutos() {
 
         const resultado = await resposta.json();
 
-        if (resposta.ok && resultado.items) {
+        if (resposta.ok && resultado.products) {
             productsCache.clear(); // Limpa o cache antes de preencher
-            resultado.items.forEach(product => {
+            resultado.products.forEach(product => {
                 productsCache.set(product.id, product.name);
             });
             console.log('Cache de produtos preenchido:', productsCache);
