@@ -275,38 +275,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // PATCH /api/v1/products/{product_id} (Patch Product)
-    async function patchProduct() {
+    // PUT /api/v1/products/{product_id} (Update Product)
+    async function updateProduct() {
         if (!currentEditProductId) {
-            alert(`${MESSAGES.noProductSelected}atualização parcial.`);
+            alert(`${MESSAGES.noProductSelected}atualização.`);
             return;
         }
         displayMessage(ELEMENTS.productDetailMessage, '', 'default');
 
-        const patchData = {};
+        const productData = {};
         const name = ELEMENTS.updateName.value;
         const description = ELEMENTS.updateDescription.value;
         const price = parseFloat(ELEMENTS.updatePrice.value);
         const category = ELEMENTS.updateCategory.value;
 
-        if (name) patchData.name = name;
-        if (description) patchData.description = description;
-        if (!isNaN(price) && price > 0) patchData.price = price;
-        if (category) patchData.category = category;
+        if (name) productData.name = name;
+        if (description) productData.description = description;
+        if (!isNaN(price) && price > 0) productData.price = price;
+        if (category) productData.category = category;
 
-        if (Object.keys(patchData).length === 0) {
+        if (Object.keys(productData).length === 0) {
             displayMessage(ELEMENTS.productDetailMessage, MESSAGES.noFieldsToPatch, 'warning');
             return;
         }
 
         const data = await fetchData(`${API_BASE_URL}/api/v1/products/${currentEditProductId}`, {
-            method: 'PATCH',
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patchData)
+            body: JSON.stringify(productData)
         });
 
         if (data) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productUpdatedSuccess(patchData.name), 'success');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productUpdatedSuccess(productData.name), 'success');
             fetchProducts();
         } else {
             displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorUpdatingProduct, 'error');
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ELEMENTS.fetchProductsBtn.addEventListener('click', fetchProducts);
     ELEMENTS.createProductForm.addEventListener('submit', createProduct);
     ELEMENTS.getProductBtn.addEventListener('click', getProductById);
-    ELEMENTS.submitPatchButton.addEventListener('click', patchProduct);
+    ELEMENTS.submitPatchButton.addEventListener('click', updateProduct);
     ELEMENTS.deleteProductBtn.addEventListener('click', deleteProduct);
 
     // Carrega os produtos ao iniciar a página
