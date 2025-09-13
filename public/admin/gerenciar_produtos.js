@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchProductsBtn: document.getElementById('fetchProductsBtn'),
         offsetInput: document.getElementById('offset'),
         limitInput: document.getElementById('limit'),
+        prevPageBtn: document.getElementById('prevPageBtn'),
+        nextPageBtn: document.getElementById('nextPageBtn'),
 
         createProductForm: document.getElementById('createProductForm'),
         createProductMessage: document.getElementById('createProductMessage'),
@@ -69,12 +71,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Funções Auxiliares ---
 
-    /**
-     * Exibe uma mensagem em um elemento HTML especificado.
-     * @param {HTMLElement} element - O elemento HTML onde a mensagem será exibida.
-     * @param {string} message - O texto da mensagem.
-     * @param {string} type - O tipo da mensagem ('success', 'error', 'warning').
-     */
     function displayMessage(element, message, type) {
         element.innerText = message;
         switch (type) {
@@ -92,21 +88,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    /**
-     * Limpa os campos de um formulário.
-     * @param {HTMLFormElement} form - O formulário a ser limpo.
-     */
     function clearForm(form) {
         form.reset();
     }
 
-    /**
-     * Função genérica para fazer requisições à API.
-     * Lida com autenticação e tratamento de erros comuns.
-     * @param {string} url - A URL do endpoint da API.
-     * @param {object} options - Opções para a requisição fetch.
-     * @returns {Promise<object|null>} Os dados da resposta JSON ou null em caso de erro.
-     */
     async function fetchData(url, options) {
         try {
             const response = await fetch(url, {
@@ -119,10 +104,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (response.status === 401 || response.status === 403) {
-                displayMessage(ELEMENTS.productDetailMessage, MESSAGES.sessionExpired, 'error'); // Usar um elemento mais genérico para esta mensagem
+                displayMessage(ELEMENTS.productDetailMessage, MESSAGES.sessionExpired, 'error');
                 localStorage.removeItem('accessToken');
                 window.location.href = '../index.html';
-                return null; // Indica que o erro de autenticação foi tratado
+                return null;
             }
 
             const data = await response.json();
@@ -130,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!response.ok) {
                 const errorMessage = data.detail || data.message || response.statusText;
                 console.error(`Erro na requisição para ${url}:`, errorMessage, data);
-                throw new Error(errorMessage); // Lança um erro para ser pego pelo catch externo
+                throw new Error(errorMessage);
             }
             return data;
         } catch (error) {
@@ -151,10 +136,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Operações CRUD de Produtos ---
 
-    // GET /api/v1/products/ (Fetch Products)
     async function fetchProducts() {
         ELEMENTS.productsList.innerHTML = `<li>${MESSAGES.loadingProducts}</li>`;
         ELEMENTS.productsPaginationInfo.innerText = '';
+
+        // Fetch all products to get total count (less efficient frontend workaround)
+        const allProductsData = await fetchData(`${API_BASE_URL}/api/v1/products/?limit=10000`, { method: 'GET' });
+        const total_count = allProductsData ? allProductsData.items.length : 0;
 
         const offset = ELEMENTS.offsetInput.value;
         const limit = ELEMENTS.limitInput.value;
@@ -170,6 +158,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!items || items.length === 0) {
                 ELEMENTS.productsList.innerHTML = `<li>${MESSAGES.noProductsFound}</li>`;
+                ELEMENTS.prevPageBtn.disabled = true;
+                ELEMENTS.nextPageBtn.disabled = true;
             } else {
                 items.forEach(item => {
                     const listItem = document.createElement('li');
@@ -188,19 +178,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                     ELEMENTS.productsList.appendChild(listItem);
                 });
-                const pagination = data.pagination;
-                const items_on_page = data.items.length;
-                ELEMENTS.productsPaginationInfo.innerText = `Página: ${pagination.page}. Mostrando ${items_on_page} items.`;
+                
+                const current_offset = parseInt(ELEMENTS.offsetInput.value, 10);
+                const current_limit = parseInt(ELEMENTS.limitInput.value, 10);
+                const page = Math.floor(current_offset / current_limit) + 1;
+                const total_pages = Math.ceil(total_count / current_limit);
+
+                ELEMENTS.productsPaginationInfo.innerText = `Página: ${page} de ${total_pages} (Total: ${total_count} items)`;
+
+                // Handle button states
+                ELEMENTS.prevPageBtn.disabled = current_offset === 0;
+                ELEMENTS.nextPageBtn.disabled = page >= total_pages;
             }
         } else {
             ELEMENTS.productsList.innerHTML = `<li>${MESSAGES.errorFetchingProducts}</li>`;
+            ELEMENTS.prevPageBtn.disabled = true;
+            ELEMENTS.nextPageBtn.disabled = true;
         }
     }
 
-    // POST /api/v1/products/ (Create Product)
     async function createProduct(event) {
         event.preventDefault();
-        displayMessage(ELEMENTS.createProductMessage, '', 'default'); // Limpa mensagens anteriores
+        displayMessage(ELEMENTS.createProductMessage, '', 'default');
 
         const newProduct = {
             name: ELEMENTS.createName.value,
@@ -209,7 +208,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             category: ELEMENTS.createCategory.value,
         };
 
-        // Validação básica no frontend
         if (!newProduct.name || newProduct.name.trim() === '') {
             displayMessage(ELEMENTS.createProductMessage, MESSAGES.nameRequired, 'error');
             return;
@@ -232,13 +230,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccessNoId, 'warning');
             }
             clearForm(ELEMENTS.createProductForm);
-            fetchProducts(); // Recarrega a lista
+            fetchProducts();
         } else {
             displayMessage(ELEMENTS.createProductMessage, MESSAGES.errorCreatingProduct, 'error');
         }
     }
 
-    // GET /api/v1/products/{product_id} (Get Product By Id)
     async function getProductById() {
         const productId = ELEMENTS.getProductIdInput.value.trim();
         displayMessage(ELEMENTS.productDetailMessage, '', 'default');
@@ -265,18 +262,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             ELEMENTS.updateProductForm.style.display = 'block';
             displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productLoadedForEdit(data.name), 'success');
         } else {
-            // fetchData já trata erros de conexão e autenticação
-            // Aqui podemos adicionar tratamento para 404 especificamente se fetchData não o fizer
-            // Por simplicidade, fetchData lança erro, então o 'null' já cobre
             if (productId && ELEMENTS.productDetailMessage.innerText === MESSAGES.serverConnectionError) {
-                // Se o erro foi de conexão, a mensagem já está lá
+                // If the error was from connection, the message is already there
             } else {
                 displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productNotFound(productId), 'warning');
             }
         }
     }
 
-    // PUT /api/v1/products/{product_id} (Update Product)
     async function updateProduct() {
         if (!currentEditProductId) {
             alert(`${MESSAGES.noProductSelected}atualização.`);
@@ -314,7 +307,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // DELETE /api/v1/products/{product_id} (Delete Product)
     async function deleteProduct() {
         if (!currentEditProductId) {
             alert(`${MESSAGES.noProductSelected}exclusão.`);
@@ -330,17 +322,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             method: 'DELETE',
         });
 
-        // Para DELETE, data pode ser vazia se a resposta for 204 No Content
-        // A função fetchData já verifica response.ok, então se não for null, a operação foi bem-sucedida.
-        if (data !== null) { // Se a requisição não retornou erro (mesmo que a resposta seja vazia)
+        if (data !== null) {
             displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productDeletedSuccess(ELEMENTS.updateName.value), 'success');
             ELEMENTS.updateProductForm.style.display = 'none';
             currentEditProductId = null;
             ELEMENTS.getProductIdInput.value = '';
             fetchProducts();
         } else {
-            // A mensagem de erro já foi definida por fetchData se houver um erro de rede/auth
-            // Caso contrário, significa que a API retornou um erro específico no data.detail/message
             displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorDeletingProduct, 'error');
         }
     }
@@ -351,6 +339,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     ELEMENTS.getProductBtn.addEventListener('click', getProductById);
     ELEMENTS.submitPatchButton.addEventListener('click', updateProduct);
     ELEMENTS.deleteProductBtn.addEventListener('click', deleteProduct);
+
+    ELEMENTS.prevPageBtn.addEventListener('click', () => {
+        let offset = parseInt(ELEMENTS.offsetInput.value, 10);
+        let limit = parseInt(ELEMENTS.limitInput.value, 10);
+        offset = Math.max(0, offset - limit);
+        ELEMENTS.offsetInput.value = offset;
+        fetchProducts();
+    });
+
+    ELEMENTS.nextPageBtn.addEventListener('click', () => {
+        let offset = parseInt(ELEMENTS.offsetInput.value, 10);
+        let limit = parseInt(ELEMENTS.limitInput.value, 10);
+        offset += limit;
+        ELEMENTS.offsetInput.value = offset;
+        fetchProducts();
+    });
 
     // Carrega os produtos ao iniciar a página
     fetchProducts();
