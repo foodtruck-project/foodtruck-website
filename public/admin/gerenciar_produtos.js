@@ -60,77 +60,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     let currentEditProductId = null; // Para rastrear qual produto está sendo editado
-    const accessToken = localStorage.getItem('accessToken');
 
     // --- Validação de Autenticação Inicial ---
-    if (!accessToken) {
+    if (!localStorage.getItem('accessToken')) {
         alert(MESSAGES.authRequired);
-        window.location.href = '../index.html'; // Redirecionar para a página de login
+        redirectToLoginAndClearStorage(); // Usando a função global
         return; // Impede que o restante do script seja executado sem o token
-    }
-
-    // --- Funções Auxiliares ---
-
-    function displayMessage(element, message, type) {
-        element.innerText = message;
-        switch (type) {
-            case 'success':
-                element.style.color = 'green';
-                break;
-            case 'error':
-                element.style.color = 'red';
-                break;
-            case 'warning':
-                element.style.color = 'orange';
-                break;
-            default:
-                element.style.color = 'black'; // Cor padrão
-        }
-    }
-
-    function clearForm(form) {
-        form.reset();
-    }
-
-    async function fetchData(url, options) {
-        try {
-            const response = await fetch(url, {
-                ...options,
-                headers: {
-                    ...options.headers,
-                    'Authorization': `Bearer ${accessToken}`,
-                    'accept': 'application/json'
-                },
-            });
-
-            if (response.status === 401 || response.status === 403) {
-                displayMessage(ELEMENTS.productDetailMessage, MESSAGES.sessionExpired, 'error');
-                localStorage.removeItem('accessToken');
-                window.location.href = '../index.html';
-                return null;
-            }
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                const errorMessage = data.detail || data.message || response.statusText;
-                console.error(`Erro na requisição para ${url}:`, errorMessage, data);
-                throw new Error(errorMessage);
-            }
-            return data;
-        } catch (error) {
-            console.error('Erro na requisição:', error);
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.serverConnectionError, 'error');
-            return null;
-        }
     }
 
     // --- Lógica de Logout ---
     if (ELEMENTS.logoutBtn) {
         ELEMENTS.logoutBtn.addEventListener('click', (event) => {
             event.preventDefault();
-            localStorage.removeItem('accessToken');
-            window.location.href = '../index.html';
+            redirectToLoginAndClearStorage(); // Usando a função global
         });
     }
 
@@ -141,14 +83,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         ELEMENTS.productsPaginationInfo.innerText = '';
 
         // Fetch all products to get total count (less efficient frontend workaround)
-        const allProductsData = await fetchData(`${API_BASE_URL}/api/v1/products/?limit=10000`, { method: 'GET' });
+        const allProductsData = await fetchData(`/api/v1/products/?limit=10000`, { method: 'GET' });
         const total_count = allProductsData ? allProductsData.items.length : 0;
 
         const offset = ELEMENTS.offsetInput.value;
         const limit = ELEMENTS.limitInput.value;
         const queryParams = new URLSearchParams({ offset, limit });
 
-        const data = await fetchData(`${API_BASE_URL}/api/v1/products/?${queryParams.toString()}`, {
+        const data = await fetchData(`/api/v1/products/?${queryParams.toString()}`, {
             method: 'GET',
         });
 
@@ -191,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ELEMENTS.nextPageBtn.disabled = page >= total_pages;
             }
         } else {
-            ELEMENTS.productsList.innerHTML = `<li>${MESSAGES.errorFetchingProducts}</li>`;
+            displayMessage(ELEMENTS.productsList, MESSAGES.errorFetchingProducts, 'error'); // Usando a função global
             ELEMENTS.prevPageBtn.disabled = true;
             ELEMENTS.nextPageBtn.disabled = true;
         }
@@ -199,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function createProduct(event) {
         event.preventDefault();
-        displayMessage(ELEMENTS.createProductMessage, '', 'default');
+        displayMessage(ELEMENTS.createProductMessage, '', 'default'); // Usando a função global
 
         const newProduct = {
             name: ELEMENTS.createName.value,
@@ -209,15 +151,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (!newProduct.name || newProduct.name.trim() === '') {
-            displayMessage(ELEMENTS.createProductMessage, MESSAGES.nameRequired, 'error');
+            displayMessage(ELEMENTS.createProductMessage, MESSAGES.nameRequired, 'error'); // Usando a função global
             return;
         }
         if (isNaN(newProduct.price) || newProduct.price <= 0) {
-            displayMessage(ELEMENTS.createProductMessage, MESSAGES.priceInvalid, 'error');
+            displayMessage(ELEMENTS.createProductMessage, MESSAGES.priceInvalid, 'error'); // Usando a função global
             return;
         }
 
-        const data = await fetchData(`${API_BASE_URL}/api/v1/products/`, {
+        const data = await fetchData(`/api/v1/products/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newProduct)
@@ -225,28 +167,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (data) {
             if (data.id) {
-                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccess(newProduct.name, data.id), 'success');
+                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccess(newProduct.name, data.id), 'success'); // Usando a função global
             } else {
-                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccessNoId, 'warning');
+                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccessNoId, 'warning'); // Usando a função global
             }
-            clearForm(ELEMENTS.createProductForm);
+            clearForm(ELEMENTS.createProductForm); // Usando a função global
             fetchProducts();
         } else {
-            displayMessage(ELEMENTS.createProductMessage, MESSAGES.errorCreatingProduct, 'error');
+            displayMessage(ELEMENTS.createProductMessage, MESSAGES.errorCreatingProduct, 'error'); // Usando a função global
         }
     }
 
     async function getProductById() {
         const productId = ELEMENTS.getProductIdInput.value.trim();
-        displayMessage(ELEMENTS.productDetailMessage, '', 'default');
+        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); // Usando a função global
         ELEMENTS.updateProductForm.style.display = 'none';
 
         if (!productId) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.idRequired, 'error');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.idRequired, 'error'); // Usando a função global
             return;
         }
 
-        const data = await fetchData(`${API_BASE_URL}/api/v1/products/${productId}`, {
+        const data = await fetchData(`/api/v1/products/${productId}`, {
             method: 'GET',
         });
 
@@ -260,12 +202,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             ELEMENTS.updateCategory.value = data.category || '';
 
             ELEMENTS.updateProductForm.style.display = 'block';
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productLoadedForEdit(data.name), 'success');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productLoadedForEdit(data.name), 'success'); // Usando a função global
         } else {
             if (productId && ELEMENTS.productDetailMessage.innerText === MESSAGES.serverConnectionError) {
                 // If the error was from connection, the message is already there
             } else {
-                displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productNotFound(productId), 'warning');
+                displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productNotFound(productId), 'warning'); // Usando a função global
             }
         }
     }
@@ -275,7 +217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert(`${MESSAGES.noProductSelected}atualização.`);
             return;
         }
-        displayMessage(ELEMENTS.productDetailMessage, '', 'default');
+        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); // Usando a função global
 
         const productData = {};
         const name = ELEMENTS.updateName.value;
@@ -289,21 +231,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (category) productData.category = category;
 
         if (Object.keys(productData).length === 0) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.noFieldsToPatch, 'warning');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.noFieldsToPatch, 'warning'); // Usando a função global
             return;
         }
 
-        const data = await fetchData(`${API_BASE_URL}/api/v1/products/${currentEditProductId}`, {
+        const data = await fetchData(`/api/v1/products/${currentEditProductId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(productData)
         });
 
         if (data) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productUpdatedSuccess(productData.name), 'success');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productUpdatedSuccess(productData.name), 'success'); // Usando a função global
             fetchProducts();
         } else {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorUpdatingProduct, 'error');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorUpdatingProduct, 'error'); // Usando a função global
         }
     }
 
@@ -312,24 +254,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert(`${MESSAGES.noProductSelected}exclusão.`);
             return;
         }
-        displayMessage(ELEMENTS.productDetailMessage, '', 'default');
+        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); // Usando a função global
 
         if (!confirm(MESSAGES.confirmDelete(currentEditProductId))) {
             return;
         }
 
-        const data = await fetchData(`${API_BASE_URL}/api/v1/products/${currentEditProductId}`, {
+        const data = await fetchData(`/api/v1/products/${currentEditProductId}`, {
             method: 'DELETE',
         });
 
         if (data !== null) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productDeletedSuccess(ELEMENTS.updateName.value), 'success');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productDeletedSuccess(ELEMENTS.updateName.value), 'success'); // Usando a função global
             ELEMENTS.updateProductForm.style.display = 'none';
             currentEditProductId = null;
             ELEMENTS.getProductIdInput.value = '';
             fetchProducts();
         } else {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorDeletingProduct, 'error');
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorDeletingProduct, 'error'); // Usando a função global
         }
     }
 

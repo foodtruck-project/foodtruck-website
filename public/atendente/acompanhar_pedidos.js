@@ -22,10 +22,6 @@ const MENSAGENS = {
     ERRO_CARREGAR_PRODUTOS: 'Erro ao carregar produtos:'
 };
 
-const URLS = {
-    LOGIN: '../index.html'
-};
-
 // --- Variáveis de Estado Global ---
 let isFilteredByToday = true; // Começamos com os pedidos de hoje filtrados por padrão
 let productsCache = new Map(); // Cache para armazenar ID do produto -> Nome do produto
@@ -46,61 +42,6 @@ let loadingMessage;
 let noOrdersMessage;
 let logoutBtn;
 let toggleFilterBtn; // Nova referência para o botão único de filtro
-
-// --- Funções Auxiliares ---
-
-/**
- * Obtém o token de acesso do localStorage.
- * @returns {string|null} O token de acesso ou null se não existir.
- */
-const obterTokenAcesso = () => localStorage.getItem('accessToken');
-
-/**
- * Remove os dados de sessão do localStorage.
- */
-const removerDadosSessao = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('currentOrder');
-};
-
-/**
- * Redireciona o usuário para a página de login.
- */
-const redirecionarParaLogin = () => {
-    window.location.href = URLS.LOGIN;
-};
-
-/**
- * Lida com erros de autenticação ou autorização da API, redirecionando para o login se necessário.
- * @param {Response} resposta - A resposta da requisição fetch.
- * @returns {boolean} True se um erro de autenticação/autorização foi tratado, false caso contrário.
- */
-function lidarComErroAutenticacao(resposta) {
-    if (resposta.status === 401 || resposta.status === 403) {
-        alert(MENSAGENS.SESSAO_EXPIRADA);
-        removerDadosSessao();
-        redirecionarParaLogin();
-        return true;
-    }
-    return false;
-}
-
-/**
- * Formata uma string de data ISO para o formato local brasileiro (DD/MM/AAAA HH:MM).
- * @param {string} dataString - A string de data ISO (ex: "2025-06-10T11:01:07.937046").
- * @returns {string} A data formatada.
- */
-const formatarDataCriacao = (dataString) => {
-    const dataCriacaoPedido = new Date(dataString);
-    return dataCriacaoPedido.toLocaleString('pt-BR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'America/Sao_Paulo' // Fuso horário de Florianópolis
-    });
-};
 
 /**
  * Gera o HTML para a lista de itens de um pedido.
@@ -131,29 +72,17 @@ const gerarHtmlItensPedido = (itensPedido) => {
  */
 async function carregarProdutos() {
     try {
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/products/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${obterTokenAcesso()}`,
-                'Accept': 'application/json'
-            }
-        });
+        const resultado = await fetchData('/api/v1/products/', { method: 'GET' });
 
-        if (lidarComErroAutenticacao(resposta)) {
-            return;
-        }
-
-        const resultado = await resposta.json();
-
-        if (resposta.ok && resultado.items) { // ALTERADO AQUI
+        if (resultado && resultado.items) {
             productsCache.clear(); // Limpa o cache antes de preencher
-            resultado.items.forEach(product => { // E AQUI
+            resultado.items.forEach(product => {
                 productsCache.set(product.id, product.name);
             });
             console.log('Cache de produtos preenchido:', productsCache);
         } else {
-            console.error(MENSAGENS.ERRO_CARREGAR_PRODUTOS, resultado.detail || resultado.message || resposta.statusText);
-            alert(`${MENSAGENS.ERRO_CARREGAR_PRODUTOS} ${resultado.detail || resultado.message || resposta.statusText}`);
+            console.error(MENSAGENS.ERRO_CARREGAR_PRODUTOS, resultado.detail || resultado.message || 'Erro desconhecido');
+            alert(`${MENSAGENS.ERRO_CARREGAR_PRODUTOS} ${resultado.detail || resultado.message || 'Erro desconhecido'}`);
         }
     } catch (error) {
         console.error('Erro na requisição de produtos:', error);
@@ -188,41 +117,20 @@ async function carregarTodosPedidos() {
 
     try {
         const queryParams = new URLSearchParams();
+        // Adiciona todos os status que queremos exibir
         Object.values(STATUS_PEDIDO).forEach(status => queryParams.append('status', status));
 
-        const accessToken = obterTokenAcesso(); // Get token once
+        const resultado = await fetchData(`/api/v1/orders/?${queryParams.toString()}`, { method: 'GET' });
 
-        // 1. Fetch initial orders list
-        const respostaPedidos = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Accept': 'application/json'
-            }
-        });
-
-        if (lidarComErroAutenticacao(respostaPedidos)) {
-            loadingMessage.style.display = 'none';
-            return;
-        }
-
-        const resultadoPedidos = await respostaPedidos.json();
-
-        if (respostaPedidos.ok) {
-            let pedidos = resultadoPedidos.orders;
+        if (resultado) {
+            let pedidos = resultado.orders; // Obtenha o array de pedidos
 
             // --- Aplica o filtro de data no frontend se `isFilteredByToday` for true ---
             if (isFilteredByToday && pedidos?.length) {
-                const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-                    timeZone: 'America/Sao_Paulo',
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                });
-                const hojeString = dateFormatter.format(new Date());
+                const hojeString = formatDateTimeBR(new Date().toISOString()).split(' ')[0]; // Get only date part
 
                 pedidos = pedidos.filter(pedido => {
-                    const dataPedidoString = dateFormatter.format(new Date(pedido.created_at));
+                    const dataPedidoString = formatDateTimeBR(pedido.created_at).split(' ')[0];
                     return dataPedidoString === hojeString;
                 });
             }
@@ -230,23 +138,12 @@ async function carregarTodosPedidos() {
             // 2. Fetch items for each order (N+1 problem)
             const itemFetchPromises = pedidos.map(async pedido => {
                 try {
-                    const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`,
-                            'Accept': 'application/json'
-                        }
-                    });
+                    const resultadoItens = await fetchData(`/api/v1/orders/${pedido.id}/items`, { method: 'GET' });
 
-                    if (lidarComErroAutenticacao(respostaItens)) {
-                        return { pedidoId: pedido.id, items: [] }; // Return empty if auth fails
-                    }
-
-                    const resultadoItens = await respostaItens.json();
-                    if (respostaItens.ok && resultadoItens.order_items) {
+                    if (resultadoItens && resultadoItens.order_items) {
                         pedido.products = resultadoItens.order_items; // Attach items to the order object
                     } else {
-                        console.error(`Erro ao carregar itens do pedido ${pedido.id}:`, resultadoItens.detail || resultadoItens.message || respostaItens.statusText);
+                        console.error(`Erro ao carregar itens do pedido ${pedido.id}:`, resultadoItens.detail || resultadoItens.message || 'Erro desconhecido');
                         pedido.products = []; // Ensure products array exists even on error
                     }
                 } catch (error) {
@@ -291,7 +188,7 @@ async function carregarTodosPedidos() {
                         <button class="update-status-btn btn-primary" data-order-id="${id}" data-order-locator="${locator}" disabled>Atualizar</button>
                         `;
 
-                    const dataFormatadaCriacao = formatarDataCriacao(created_at);
+                    const dataFormatadaCriacao = formatDateTimeBR(created_at);
 
                     cartaoPedido.innerHTML = `
                         <div class="order-header">
@@ -384,19 +281,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn = document.getElementById('logoutBtn');
     toggleFilterBtn = document.getElementById('toggleFilterBtn'); // Atribui a referência do novo botão
 
-    const accessToken = obterTokenAcesso();
-
     // --- Validação de Autenticação na Inicialização ---
-    if (!accessToken) {
+    if (!localStorage.getItem('accessToken')) {
         alert(MENSAGENS.AUTENTICACAO_NECESSARIA);
-        redirecionarParaLogin();
+        redirectToLoginAndClearStorage();
         return; // Interrompe a execução se não houver token
     }
 
     // --- Configuração da API_BASE_URL ---
-    // Garante que API_BASE_URL esteja definida (geralmente em um arquivo common.js incluído antes).
+    // A variável API_BASE_URL agora é globalmente definida em api.js
     if (typeof API_BASE_URL === 'undefined') {
-        console.error(MENSAGENS.ERRO_CONFIGURACAO_API.replace('API_BASE_URL não encontrada.', 'API_BASE_URL não está definida. Verifique common.js ou seu escopo.'));
+        console.error(MENSAGENS.ERRO_CONFIGURACAO_API.replace('API_BASE_URL não encontrada.', 'API_BASE_URL não está definida. Verifique api.js ou seu escopo.'));
         alert(MENSAGENS.ERRO_CONFIGURACAO_API);
         return; // Interrompe a execução se a URL base da API não estiver configurada
     }
@@ -458,21 +353,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             try {
-                const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/${idPedido}`, {
+                const resultado = await fetchData(`/api/v1/orders/${idPedido}`, {
                     method: 'PATCH', // Método HTTP para atualizar parcialmente um recurso
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json', // Informa que o corpo da requisição é JSON
-                        'Accept': 'application/json' // Informa que esperamos uma resposta JSON
-                    },
+                    headers: { 'Content-Type': 'application/json' }, // Informa que o corpo da requisição é JSON
                     body: JSON.stringify({ status: novoStatus }), // Envia o novo status no corpo da requisição
                 });
 
-                if (lidarComErroAutenticacao(resposta)) return; // Lida com erros de autenticação/autorização
-
-                const resultado = await resposta.json();
-
-                if (resposta.ok) {
+                if (resultado) {
                     // Se a atualização foi bem-sucedida, recarrega todos os pedidos
                     // para refletir as mudanças na UI (o pedido mudará de coluna).
                     carregarTodosPedidos();

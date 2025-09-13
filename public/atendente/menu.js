@@ -39,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 2. Variáveis de Estado ---
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     let allProducts = [];
-    const accessToken = localStorage.getItem('accessToken');
 
     // --- 3. Constantes ---
     const ESTIMATED_TIME_PER_ORDER_BLOCK = 8;
@@ -111,34 +110,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function redirectToLoginAndClearStorage() {
-        alert('Sessão expirada ou acesso negado. Faça login novamente.');
-        localStorage.clear();
-        window.location.href = '../index.html';
-    }
-
-    function handleAuthError(response) {
-        if (response.status === 401 || response.status === 403) {
-            redirectToLoginAndClearStorage();
-            return true;
-        }
-        return false;
-    }
-
     // --- 5. Funções de Lógica de Aplicação (API, etc.) ---
 
     async function loadProducts() {
         DOM.loadingMessage.style.display = 'block';
         DOM.noProductsMessage.style.display = 'none';
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/products/`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
-            if (handleAuthError(response)) return;
-            const result = await response.json();
-            if (response.ok) {
+            const result = await fetchData('/api/v1/products/', { method: 'GET' });
+            if (result) {
                 allProducts = result.items;
                 renderProducts(allProducts);
             } else {
-                DOM.noProductsMessage.textContent = `Erro ao carregar produtos: ${result.detail}`;
+                DOM.noProductsMessage.textContent = 'Erro ao carregar produtos.';
                 DOM.noProductsMessage.style.display = 'block';
             }
         } catch (error) {
@@ -151,12 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function displayEstimatedTime() {
         try {
-            const queryParams = new URLSearchParams({ status: 'PENDING', status: 'PROCESSING' });
-            const response = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
-            if (handleAuthError(response)) return;
-            const result = await response.json();
-            if (response.ok) {
-                const pendingCount = result.orders.length;
+            const queryParams = new URLSearchParams();
+            queryParams.append('status', 'PENDING');
+            queryParams.append('status', 'PROCESSING');
+            const result = await fetchData(`/api/v1/orders/?${queryParams.toString()}`, { method: 'GET' });
+            if (result) {
+                const filteredOrders = result.orders.filter(order => order.status === 'PENDING' || order.status === 'PROCESSING');
+                const pendingCount = filteredOrders.length;
                 const estimatedTime = MenuLogic.calculateEstimatedTime(pendingCount, ESTIMATED_TIME_PER_ORDER_BLOCK, ORDERS_PER_BLOCK);
                 DOM.estimatedMinutesSpan.textContent = estimatedTime;
                 DOM.pendingOrdersCountSpan.textContent = pendingCount;
@@ -176,14 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/orders/`, {
+            const result = await fetchData('/api/v1/orders/', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderPayload)
             });
-            if (handleAuthError(response)) return;
-            const result = await response.json();
-            if (response.ok) {
+            if (result) {
                 alert(`Pedido #${result.id.substring(0, 8)} criado com sucesso!`);
                 cart = [];
                 localStorage.removeItem('cart');
@@ -193,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 DOM.orderNotesInput.value = '';
                 displayEstimatedTime();
             } else {
-                alert(`Erro ao finalizar pedido: ${result.detail}`);
+                alert(`Erro ao finalizar pedido: ${result.detail || 'Não foi possível conectar ao servidor para finalizar o pedido.'}`);
             }
         } catch (error) {
             alert('Não foi possível conectar ao servidor para finalizar o pedido.');
@@ -243,11 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- 7. Inicialização ---
-    if (!accessToken) {
+    if (!localStorage.getItem('accessToken')) {
         redirectToLoginAndClearStorage();
         return;
     }
-    if (!MenuLogic.isUserAdmin(localStorage.getItem('userRole'))) {
+    if (!isUserAdmin(localStorage.getItem('userRole'))) {
         DOM.adminOnlyLinks.forEach(link => link.style.display = 'none');
     }
 

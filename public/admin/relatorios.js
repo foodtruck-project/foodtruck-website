@@ -15,10 +15,6 @@ const MENSAGENS = {
     ERRO_CARREGAR_PRODUTOS: 'Erro ao carregar lista de produtos.'
 };
 
-const URLS = {
-    LOGIN: '../index.html'
-};
-
 // --- Variáveis de Estado e Referências Globais ---
 let salesChart = null; // Instância do gráfico Chart.js de vendas
 let productRevenueChart = null; // Nova instância para o gráfico de faturamento por produto
@@ -34,41 +30,14 @@ const predefinedColors = [
     '#00CED1', '#DC143C', '#FFD700', '#ADFF2F', '#FF1493'
 ];
 
-// --- Funções Auxiliares (reutilizadas de outros scripts) ---
-const obterTokenAcesso = () => localStorage.getItem('accessToken');
-const removerDadosSessao = () => { localStorage.removeItem('accessToken'); };
-const redirecionarParaLogin = () => { window.location.href = URLS.LOGIN; };
-
-function lidarComErroAutenticacao(resposta) {
-    if (resposta.status === 401 || resposta.status === 403) {
-        alert(MENSAGENS.SESSAO_EXPIRADA);
-        removerDadosSessao();
-        redirecionarParaLogin();
-        return true;
-    }
-    return false;
-}
-
 /**
  * Carrega todos os produtos da API e preenche o productsCache e o productColorsCache.
  */
 async function carregarProdutos() {
     try {
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/products/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${obterTokenAcesso()}`,
-                'Accept': 'application/json'
-            }
-        });
+        const resultado = await fetchData('/api/v1/products/', { method: 'GET' });
 
-        if (lidarComErroAutenticacao(resposta)) {
-            return false;
-        }
-
-        const resultado = await resposta.json();
-
-        if (resposta.ok && resultado.items) {
+        if (resultado && resultado.items) {
             productsCache.clear();
             productColorsCache.clear();
             let colorIndex = 0;
@@ -81,7 +50,7 @@ async function carregarProdutos() {
             console.log('Cache de produtos e cores preenchido.');
             return true;
         } else {
-            console.error(MENSAGENS.ERRO_CARREGAR_PRODUTOS, resultado.detail || resposta.statusText);
+            console.error(MENSAGENS.ERRO_CARREGAR_PRODUTOS, resultado.detail || resultado.message || 'Erro desconhecido');
             return false;
         }
     } catch (error) {
@@ -477,43 +446,17 @@ async function carregarRelatorio() {
              return;
         }
 
-        const accessToken = obterTokenAcesso();
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Accept': 'application/json'
-            }
-        });
-
-        if (lidarComErroAutenticacao(resposta)) {
-            loadingMessage.style.display = 'none';
-            return;
-        }
-
-        const resultado = await resposta.json();
+        const resultado = await fetchData('/api/v1/orders/', { method: 'GET' });
         loadingMessage.style.display = 'none';
 
-        if (resposta.ok && resultado.orders?.length > 0) {
+        if (resultado && resultado.orders?.length > 0) {
             let pedidos = resultado.orders;
 
             const itemFetchPromises = pedidos.map(async pedido => {
                 try {
-                    const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`,
-                            'Accept': 'application/json'
-                        }
-                    });
+                    const resultadoItens = await fetchData(`/api/v1/orders/${pedido.id}/items`, { method: 'GET' });
 
-                    if (lidarComErroAutenticacao(respostaItens)) {
-                        pedido.items = [];
-                        return pedido;
-                    }
-
-                    const resultadoItens = await respostaItens.json();
-                    if (respostaItens.ok && resultadoItens.order_items) {
+                    if (resultadoItens && resultadoItens.order_items) {
                         pedido.items = resultadoItens.order_items;
                     } else {
                         pedido.items = [];
@@ -626,9 +569,9 @@ function calcularPeriodo(range) {
 
 // --- Lógica Principal: Executada quando o DOM está completamente carregado ---
 document.addEventListener('DOMContentLoaded', () => {
-    if (!obterTokenAcesso()) {
+    if (!localStorage.getItem('accessToken')) {
         alert(MENSAGENS.AUTENTICACAO_NECESSARIA);
-        redirecionarParaLogin();
+        redirectToLoginAndClearStorage();
         return;
     }
     if (typeof API_BASE_URL === 'undefined') {
@@ -643,8 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            removerDadosSessao();
-            redirecionarParaLogin();
+            redirectToLoginAndClearStorage();
         });
     }
 

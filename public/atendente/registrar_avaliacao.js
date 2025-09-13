@@ -648,7 +648,7 @@ function calcularEExibirRanking() {
         card.innerHTML = `
             <h4>${product.productName}</h4>
             <div class="ranking-details">
-                <p>Vendas: <strong>${product.salesCount}</strong></p>
+                <p>Vendas Avaliadas: <strong>${product.salesCount}</strong></p>
             </div>
             <div class="average-rating">${product.averageRating.toFixed(2)}</div>
         `;
