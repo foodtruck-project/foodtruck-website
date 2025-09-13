@@ -189,7 +189,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ELEMENTS.productsList.appendChild(listItem);
                 });
                 const pagination = data.pagination;
-                ELEMENTS.productsPaginationInfo.innerText = `Página: ${pagination.page} de ${pagination.total_pages} (Total: ${pagination.total_count} produtos)`;
+                const items_on_page = data.items.length;
+                ELEMENTS.productsPaginationInfo.innerText = `Página: ${pagination.page}. Mostrando ${items_on_page} items.`;
             }
         } else {
             ELEMENTS.productsList.innerHTML = `<li>${MESSAGES.errorFetchingProducts}</li>`;
