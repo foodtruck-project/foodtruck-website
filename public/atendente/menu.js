@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (handleAuthError(response)) return;
             const result = await response.json();
             if (response.ok) {
-                allProducts = result.products;
+                allProducts = result.items;
                 renderProducts(allProducts);
             } else {
                 DOM.noProductsMessage.textContent = `Erro ao carregar produtos: ${result.detail}`;

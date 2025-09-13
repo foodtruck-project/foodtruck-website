@@ -145,9 +145,9 @@ async function carregarProdutos() {
 
         const resultado = await resposta.json();
 
-        if (resposta.ok && resultado.products) {
+        if (resposta.ok && resultado.items) {
             productsCache.clear(); // Limpa o cache antes de preencher
-            resultado.products.forEach(product => {
+            resultado.items.forEach(product => {
                 productsCache.set(product.id, product.name);
             });
             console.log('Cache de produtos preenchido:', productsCache);
@@ -229,12 +229,45 @@ async function carregarTodosPedidos() {
                 });
             }
 
-            if (!pedidos?.length) { // Verifica se não há pedidos após o filtro
+            if (!pedidos?.length) {
                 noOrdersMessage.style.display = 'block';
             } else {
+                const accessToken = obterTokenAcesso(); // Get token once
+
+                // 2. Fetch items for each order (N+1 problem)
+                const itemFetchPromises = pedidos.map(async pedido => {
+                    try {
+                        const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (lidarComErroAutenticacao(respostaItens)) {
+                            return { pedidoId: pedido.id, items: [] }; // Return empty if auth fails
+                        }
+
+                        const resultadoItens = await respostaItens.json();
+                        if (respostaItens.ok && resultadoItens.order_items) {
+                            pedido.products = resultadoItens.order_items; // Attach items to the order object
+                        } else {
+                            console.error(`Erro ao carregar itens do pedido ${pedido.id}:`, resultadoItens.detail || resultadoItens.message || respostaItens.statusText);
+                            pedido.products = []; // Ensure products array exists even on error
+                        }
+                    } catch (error) {
+                        console.error(`Erro na requisição de itens para o pedido ${pedido.id}:`, error);
+                        pedido.products = []; // Ensure products array exists even on network error
+                    }
+                    return pedido; // Return the modified pedido
+                });
+
+                // Wait for all item fetches to complete
+                pedidos = await Promise.all(itemFetchPromises);
+
                 // Itera sobre os pedidos e os distribui nas colunas
                 pedidos.forEach(pedido => {
-                    // AQUI ESTÁ A MUDANÇA: 'products' em vez de 'items'
                     const { id, locator, status, products, notes, total, created_at } = pedido; 
                     
                     const statusExibicao = status.toUpperCase();
@@ -242,7 +275,6 @@ async function carregarTodosPedidos() {
                     const cartaoPedido = document.createElement('div');
                     cartaoPedido.classList.add('order-card', statusExibicao.toLowerCase());
 
-                    // Agora passamos 'products' para a função gerarHtmlItensPedido
                     const htmlItens = gerarHtmlItensPedido(products); 
 
                     // --- Regras de Transição de Status ---

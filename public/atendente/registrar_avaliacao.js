@@ -174,9 +174,9 @@ async function carregarProdutos() {
 
         const resultado = await resposta.json();
 
-        if (resposta.ok && resultado.products) {
+        if (resposta.ok && resultado.items) {
             productsCache.clear();
-            resultado.products.forEach(product => {
+            resultado.items.forEach(product => {
                 productsCache.set(product.id, product.name);
             });
             console.log('Cache de produtos preenchido:', productsCache);
@@ -203,10 +203,11 @@ async function carregarPedidosParaAvaliar() {
         queryParams.append('status', 'COMPLETED'); // Apenas pedidos concluídos
         queryParams.append('limit', 500); 
 
+        const accessToken = obterTokenAcesso();
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${obterTokenAcesso()}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/json'
             }
         });
@@ -220,9 +221,39 @@ async function carregarPedidosParaAvaliar() {
 
         if (resposta.ok && resultado.orders) {
             // Filtra localmente para pegar apenas pedidos COMPLETED que ainda não têm nota
-            const pedidosSemNota = resultado.orders.filter(order => 
+            let pedidosSemNota = resultado.orders.filter(order => 
                 order.status.toUpperCase() === 'COMPLETED' && (order.rating === undefined || order.rating === null)
             );
+
+            if (pedidosSemNota.length > 0) {
+                const itemFetchPromises = pedidosSemNota.map(async pedido => {
+                    try {
+                        const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (lidarComErroAutenticacao(respostaItens)) {
+                            pedido.items = [];
+                            return pedido;
+                        }
+
+                        const resultadoItens = await respostaItens.json();
+                        if (respostaItens.ok && resultadoItens.order_items) {
+                            pedido.items = resultadoItens.order_items;
+                        } else {
+                            pedido.items = [];
+                        }
+                    } catch (error) {
+                        pedido.items = [];
+                    }
+                    return pedido;
+                });
+                pedidosSemNota = await Promise.all(itemFetchPromises);
+            }
             
             if (pedidosSemNota.length === 0) {
                 noEvalOrdersMessage.style.display = 'block';
@@ -235,7 +266,7 @@ async function carregarPedidosParaAvaliar() {
                         <h4>Pedido: ${pedido.locator}</h4>
                         <p>Total: <strong>R$ ${pedido.total ? pedido.total.toFixed(2) : '0.00'}</strong></p>
                         <p>Criado em: <strong>${formatarDataCriacao(pedido.created_at)}</strong></p>
-                        ${renderOrderProducts(pedido.products)} `;
+                        ${renderOrderProducts(pedido.items)} `;
                     orderCard.addEventListener('click', () => selectOrderForRating(pedido));
                     ordersToEvaluateList.appendChild(orderCard);
                 });
@@ -381,10 +412,11 @@ async function carregarPedidosAvaliados() {
         queryParams.append('status', 'COMPLETED'); // Apenas pedidos concluídos
         queryParams.append('limit', 500); 
 
+        const accessToken = obterTokenAcesso();
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${obterTokenAcesso()}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/json'
             }
         });
@@ -398,9 +430,39 @@ async function carregarPedidosAvaliados() {
 
         if (resposta.ok && resultado.orders) {
             // Filtra localmente para pegar apenas pedidos COMPLETED que já têm nota
-            const pedidosComNota = resultado.orders.filter(order => 
+            let pedidosComNota = resultado.orders.filter(order => 
                 order.status.toUpperCase() === 'COMPLETED' && (order.rating !== undefined && order.rating !== null)
             );
+
+            if (pedidosComNota.length > 0) {
+                const itemFetchPromises = pedidosComNota.map(async pedido => {
+                    try {
+                        const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (lidarComErroAutenticacao(respostaItens)) {
+                            pedido.items = [];
+                            return pedido;
+                        }
+
+                        const resultadoItens = await respostaItens.json();
+                        if (respostaItens.ok && resultadoItens.order_items) {
+                            pedido.items = resultadoItens.order_items;
+                        } else {
+                            pedido.items = [];
+                        }
+                    } catch (error) {
+                        pedido.items = [];
+                    }
+                    return pedido;
+                });
+                pedidosComNota = await Promise.all(itemFetchPromises);
+            }
             
             if (pedidosComNota.length === 0) {
                 noEvaluatedOrdersMessage.style.display = 'block';
@@ -414,7 +476,7 @@ async function carregarPedidosAvaliados() {
                         <h4>Pedido: ${pedido.locator}</h4>
                         <p>Total: <strong>R$ ${pedido.total ? pedido.total.toFixed(2) : '0.00'}</strong></p>
                         <p>Criado em: <strong>${formatarDataCriacao(pedido.created_at)}</strong></p>
-                        ${renderOrderProducts(pedido.products)} <div class="current-rating">Nota Atual: <strong>${pedido.rating.toFixed(1)}</strong></div>
+                        ${renderOrderProducts(pedido.items)} <div class="current-rating">Nota Atual: <strong>${pedido.rating.toFixed(1)}</strong></div>
                         <div class="rating-edit-group">
                             <label for="editRating-${pedido.id}">Nova Nota:</label>
                             <input type="number" id="editRating-${pedido.id}" min="0" max="5" step="1" value="${pedido.rating}">
@@ -464,10 +526,11 @@ async function carregarTodosPedidosParaRanking() {
         queryParams.append('status', 'COMPLETED'); // Apenas pedidos concluídos para ranking
         queryParams.append('limit', 1000); // Exemplo: limite alto para buscar muitos pedidos
 
+        const accessToken = obterTokenAcesso();
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${obterTokenAcesso()}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/json'
             }
         });
@@ -480,7 +543,38 @@ async function carregarTodosPedidosParaRanking() {
         const resultado = await resposta.json();
 
         if (resposta.ok && resultado.orders) {
-            allOrdersDataForRanking = resultado.orders;
+            let pedidos = resultado.orders;
+
+            const itemFetchPromises = pedidos.map(async pedido => {
+                try {
+                    const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (lidarComErroAutenticacao(respostaItens)) {
+                        pedido.items = [];
+                        return pedido;
+                    }
+
+                    const resultadoItens = await respostaItens.json();
+                    if (respostaItens.ok && resultadoItens.order_items) {
+                        pedido.items = resultadoItens.order_items; // Attach items to the order object
+                    } else {
+                        console.error(`Erro ao carregar itens do pedido ${pedido.id}:`, resultadoItens.detail || resultadoItens.message || respostaItens.statusText);
+                        pedido.items = []; // Ensure items array exists even on error
+                    }
+                } catch (error) {
+                    console.error(`Erro na requisição de itens para o pedido ${pedido.id}:`, error);
+                    pedido.items = []; // Ensure items array exists even on network error
+                }
+                return pedido; // Return the modified pedido
+            });
+
+            allOrdersDataForRanking = await Promise.all(itemFetchPromises);
             console.log('Pedidos carregados para ranking:', allOrdersDataForRanking.length);
         } else {
             console.error(MENSAGENS_AVALIAR.ERRO_CARREGAR_PEDIDOS_RANKING, resultado.detail || resultado.message || resposta.statusText);
@@ -507,7 +601,7 @@ function calcularEExibirRanking() {
     allOrdersDataForRanking.forEach(order => {
         // Apenas pedidos com rating e status CONCLUIDO
         if (order.status.toUpperCase() === 'COMPLETED' && order.rating !== undefined && order.rating !== null) {
-            order.products.forEach(item => { // Assume que `order.products` é o array de itens
+            order.items.forEach(item => { // Assume que `order.products` é o array de itens
                 const productId = item.product_id;
                 
                 if (!productStats.has(productId)) {

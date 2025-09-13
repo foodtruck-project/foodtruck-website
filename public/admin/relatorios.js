@@ -68,11 +68,11 @@ async function carregarProdutos() {
 
         const resultado = await resposta.json();
 
-        if (resposta.ok && resultado.products) {
+        if (resposta.ok && resultado.items) {
             productsCache.clear();
             productColorsCache.clear();
             let colorIndex = 0;
-            resultado.products.forEach(product => {
+            resultado.items.forEach(product => {
                 productsCache.set(product.id, { name: product.name, price: product.price });
                 const color = predefinedColors[colorIndex % predefinedColors.length];
                 productColorsCache.set(product.id, color);
@@ -128,7 +128,7 @@ function processarDadosVendas(pedidos, agrupamento) {
 function processarFaturamentoPorProduto(pedidos) {
     const revenueAndQuantityByProduct = new Map();
     pedidos.forEach(pedido => {
-        pedido.products.forEach(item => {
+        pedido.items.forEach(item => {
             const productId = item.product_id;
             const productInfo = productsCache.get(productId);
 
@@ -180,7 +180,7 @@ function processarEvolucaoProdutos(pedidos, agrupamento) {
             dadosAgrupados[chave] = {};
         }
 
-        pedido.products.forEach(item => {
+        pedido.items.forEach(item => {
             const productInfo = productsCache.get(item.product_id);
             if (productInfo) {
                 const productName = productInfo.name;
@@ -340,7 +340,8 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
                     formatter: (value, context) => {
                         const totalRevenue = context.dataset.data.reduce((sum, current) => sum + current, 0);
                         const percentage = totalRevenue > 0 ? ((value / totalRevenue) * 100).toFixed(1) : 0;
-                        return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}\n(${percentage}%)`;
+                        return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
+(${percentage}%)`;
                     },
                     font: {
                         weight: 'bold',
@@ -476,10 +477,11 @@ async function carregarRelatorio() {
              return;
         }
 
+        const accessToken = obterTokenAcesso();
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${obterTokenAcesso()}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/json'
             }
         });
@@ -493,7 +495,37 @@ async function carregarRelatorio() {
         loadingMessage.style.display = 'none';
 
         if (resposta.ok && resultado.orders?.length > 0) {
-            let pedidosParaFiltrar = resultado.orders;
+            let pedidos = resultado.orders;
+
+            const itemFetchPromises = pedidos.map(async pedido => {
+                try {
+                    const respostaItens = await fetch(`${API_BASE_URL}/api/v1/orders/${pedido.id}/items`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (lidarComErroAutenticacao(respostaItens)) {
+                        pedido.items = [];
+                        return pedido;
+                    }
+
+                    const resultadoItens = await respostaItens.json();
+                    if (respostaItens.ok && resultadoItens.order_items) {
+                        pedido.items = resultadoItens.order_items;
+                    } else {
+                        pedido.items = [];
+                    }
+                } catch (error) {
+                    pedido.items = [];
+                }
+                return pedido;
+            });
+
+            let pedidosComItems = await Promise.all(itemFetchPromises);
+            let pedidosParaFiltrar = pedidosComItems;
 
             if (selectedRange === 'allTime') {
                 const minDate = new Date(Math.min(...pedidosParaFiltrar.map(p => new Date(p.created_at))));
