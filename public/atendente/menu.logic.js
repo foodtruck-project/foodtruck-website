@@ -101,14 +101,5 @@ const MenuLogic = {
         }
         const blocks = Math.ceil((pendingOrdersCount + 1) / ordersPerBlock);
         return blocks * timePerBlock;
-    },
-
-    /**
-     * Verifica se o usuário tem uma role de administrador.
-     * @param {string} userRole - A role do usuário (ex: 'admin', 'attendant').
-     * @returns {boolean} True se o usuário for admin.
-     */
-    isUserAdmin: function(userRole) {
-        return userRole === 'admin';
     }
 };
