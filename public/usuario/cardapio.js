@@ -40,7 +40,7 @@ async function carregarProdutosDoMenu() {
             drinkCardList.className = 'card-list';
 
             resultado.forEach(product => {
-                productsCache.set(product.id, product.name);
+                productsCache.set(product.id, { name: product.name, category: product.category });
                 const card = document.createElement('div');
                 card.className = 'card';
 
@@ -124,11 +124,14 @@ function calcularEExibirRanking() {
     }
 
     const rankingArray = Array.from(productStats.entries()).map(([productId, stats]) => {
-        const productName = productsCache.get(productId) || `Produto Desconhecido`;
+        const productInfo = productsCache.get(productId);
+        const productName = productInfo ? productInfo.name : `Produto Desconhecido`;
+        const productCategory = productInfo ? productInfo.category : `UNKNOWN`;
         const averageRating = stats.countRating > 0 ? (stats.totalRating / stats.countRating) : 0;
         return {
             productId,
             productName,
+            productCategory,
             averageRating: parseFloat(averageRating.toFixed(2)),
             salesCount: stats.salesCount
         };
@@ -141,13 +144,16 @@ function calcularEExibirRanking() {
         return b.salesCount - a.salesCount;
     });
 
+    const foodRankingArray = rankingArray.filter(product => product.productCategory === 'FOOD');
+    const drinkRankingArray = rankingArray.filter(product => product.productCategory === 'DRINK');
+
     // Criar um div 'card-list' para cada coluna para manter a consistência de estilo
     const rankingCardList1 = document.createElement('div');
     rankingCardList1.className = 'card-list';
     const rankingCardList2 = document.createElement('div');
     rankingCardList2.className = 'card-list';
 
-    rankingArray.forEach((product, index) => {
+    foodRankingArray.forEach(product => {
         const card = document.createElement('div');
         card.className = 'card ranking-card';
 
@@ -169,13 +175,32 @@ function calcularEExibirRanking() {
 
         card.appendChild(productName);
         card.appendChild(detailsContainer);
+        rankingCardList1.appendChild(card);
+    });
 
-        // Alterna entre as duas colunas
-        if (index % 2 === 0) {
-            rankingCardList1.appendChild(card);
-        } else {
-            rankingCardList2.appendChild(card);
-        }
+    drinkRankingArray.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'card ranking-card';
+
+        const productName = document.createElement('h3');
+        productName.textContent = product.productName;
+        
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'ranking-details';
+
+        const salesSpan = document.createElement('span');
+        salesSpan.textContent = `Vendas: ${product.salesCount}`;
+        
+        const ratingSpan = document.createElement('span');
+        ratingSpan.className = 'rating';
+        ratingSpan.textContent = `Nota: ${product.averageRating.toFixed(2)} / 5`;
+
+        detailsContainer.appendChild(salesSpan);
+        detailsContainer.appendChild(ratingSpan);
+
+        card.appendChild(productName);
+        card.appendChild(detailsContainer);
+        rankingCardList2.appendChild(card);
     });
 
     rankingColumn1.appendChild(rankingCardList1);
