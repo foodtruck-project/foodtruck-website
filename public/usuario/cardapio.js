@@ -30,18 +30,7 @@ async function carregarProdutosDoMenu() {
     drinkList.innerHTML = '';
 
     try {
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/public/products`);
-
-        if (!resposta.ok) {
-            const resultado = await resposta.json();
-            console.error(MENSAGENS_PUBLICO.ERRO_CARREGAR_PRODUTOS, resultado.detail || resultado.message || resposta.statusText);
-            noMenuMessage.textContent = MENSAGENS_PUBLICO.ERRO_CARREGAR_PRODUTOS + ' ' + (resultado.detail || resposta.statusText);
-            noMenuMessage.style.display = 'block';
-            menuLoadingMessage.style.display = 'none';
-            return;
-        }
-
-        const resultado = await resposta.json();
+        const resultado = await fetchData('/api/v1/public/products');
 
         if (resultado && resultado.length > 0) {
             productsCache.clear();
@@ -95,18 +84,7 @@ async function carregarTodosPedidosParaRanking() {
     allOrdersDataForRanking = [];
 
     try {
-        const resposta = await fetch(`${API_BASE_URL}/api/v1/public/orders/`);
-
-        if (!resposta.ok) {
-            const resultado = await resposta.json();
-            console.error(MENSAGENS_PUBLICO.ERRO_CARREGAR_PEDIDOS, resultado.detail || resultado.message || resposta.statusText);
-            noRankingMessage.textContent = `Erro ao carregar ranking: ${resultado.detail || resultado.message || resposta.statusText}`;
-            noRankingMessage.style.display = 'block';
-            rankingLoadingMessage.style.display = 'none';
-            return;
-        }
-
-        const publicProductData = await resposta.json();
+        const publicProductData = await fetchData('/api/v1/public/orders/');
 
         if (publicProductData && publicProductData.length > 0) {
             allOrdersDataForRanking = publicProductData;
