@@ -89,6 +89,10 @@ footer {
     
 }
 
+footer.index {   
+    position: fixed;       
+}
+
 .login-container, .menu-list, .order-registration, .order-tracking, .review-registration, .order-preparation {
     padding: 20px;
     border: 1px solid #ddd;
