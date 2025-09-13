@@ -134,10 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function displayEstimatedTime() {
         try {
-            const queryParams = new URLSearchParams({ status: 'PENDING', status: 'PROCESSING' });
+            const queryParams = new URLSearchParams();
+            queryParams.append('status', 'PENDING');
+            queryParams.append('status', 'PROCESSING');
             const result = await fetchData(`/api/v1/orders/?${queryParams.toString()}`, { method: 'GET' });
             if (result) {
-                const pendingCount = result.orders.length;
+                const filteredOrders = result.orders.filter(order => order.status === 'PENDING' || order.status === 'PROCESSING');
+                const pendingCount = filteredOrders.length;
                 const estimatedTime = MenuLogic.calculateEstimatedTime(pendingCount, ESTIMATED_TIME_PER_ORDER_BLOCK, ORDERS_PER_BLOCK);
                 DOM.estimatedMinutesSpan.textContent = estimatedTime;
                 DOM.pendingOrdersCountSpan.textContent = pendingCount;
