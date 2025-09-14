@@ -1,5 +1,3 @@
-// public/menu_ranking_publico/cardapio.js
-
 const MENSAGENS_PUBLICO = {
     ERRO_CARREGAR_PRODUTOS: 'Erro ao carregar menu:',
     ERRO_CARREGAR_PEDIDOS: 'Erro ao carregar dados para o ranking:',
@@ -11,9 +9,9 @@ const MENSAGENS_PUBLICO = {
 
 let rankingLoadingMessage;
 let noRankingMessage;
-let rankingList; // Manter para compatibilidade ou remover se não for mais usado diretamente
-let rankingColumn1; // Novo
-let rankingColumn2; // Novo
+let rankingList; 
+let rankingColumn1; 
+let rankingColumn2; 
 let menuLoadingMessage;
 let noMenuMessage;
 let foodList;
@@ -22,7 +20,6 @@ let drinkList;
 let productsCache = new Map();
 let allOrdersDataForRanking = [];
 
-// Funções para a interface pública
 async function carregarProdutosDoMenu() {
     menuLoadingMessage.style.display = 'block';
     noMenuMessage.style.display = 'none';
@@ -79,8 +76,8 @@ async function carregarProdutosDoMenu() {
 async function carregarTodosPedidosParaRanking() {
     rankingLoadingMessage.style.display = 'block';
     noRankingMessage.style.display = 'none';
-    rankingColumn1.innerHTML = ''; // Limpa a coluna 1
-    rankingColumn2.innerHTML = ''; // Limpa a coluna 2
+    rankingColumn1.innerHTML = ''; 
+    rankingColumn2.innerHTML = ''; 
     allOrdersDataForRanking = [];
 
     try {
@@ -101,8 +98,8 @@ async function carregarTodosPedidosParaRanking() {
 }
 
 function calcularEExibirRanking() {
-    rankingColumn1.innerHTML = ''; // Garante que as colunas estejam limpas antes de adicionar
-    rankingColumn2.innerHTML = ''; // Garante que as colunas estejam limpas antes de adicionar
+    rankingColumn1.innerHTML = ''; 
+    rankingColumn2.innerHTML = ''; 
     const productStats = new Map();
 
     allOrdersDataForRanking.forEach(item => {
@@ -147,7 +144,6 @@ function calcularEExibirRanking() {
     const foodRankingArray = rankingArray.filter(product => product.productCategory === 'FOOD');
     const drinkRankingArray = rankingArray.filter(product => product.productCategory === 'DRINK');
 
-    // Criar um div 'card-list' para cada coluna para manter a consistência de estilo
     const rankingCardList1 = document.createElement('div');
     rankingCardList1.className = 'card-list';
     const rankingCardList2 = document.createElement('div');
@@ -208,13 +204,11 @@ function calcularEExibirRanking() {
     noRankingMessage.style.display = 'none';
 }
 
-// Lógica de inicialização para a página pública
 document.addEventListener('DOMContentLoaded', async () => {
     rankingLoadingMessage = document.getElementById('rankingLoadingMessage');
     noRankingMessage = document.getElementById('noRankingMessage');
-    // rankingList = document.getElementById('rankingList'); // Este ID não será mais usado diretamente
-    rankingColumn1 = document.getElementById('rankingColumn1'); // Novo
-    rankingColumn2 = document.getElementById('rankingColumn2'); // Novo
+    rankingColumn1 = document.getElementById('rankingColumn1'); 
+    rankingColumn2 = document.getElementById('rankingColumn2'); 
     menuLoadingMessage = document.getElementById('menuLoadingMessage');
     noMenuMessage = document.getElementById('noMenuMessage');
     foodList = document.getElementById('foodList');
@@ -225,13 +219,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    // Carrega produtos para o menu e para o cache do ranking
     await carregarProdutosDoMenu();
     
-    // Carrega pedidos para o ranking
     await carregarTodosPedidosParaRanking();
 
-    // Calcula e exibe o ranking se houver dados
     if (productsCache.size > 0 && allOrdersDataForRanking.length > 0) {
         calcularEExibirRanking();
     } else {

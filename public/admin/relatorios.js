@@ -1,11 +1,5 @@
-// public/atendente/relatorios.js
-// Lógica para gerar relatórios de vendas com gráficos.
-
-// --- Registra o plugin de DataLabels ---
-// Acessa a variável global 'ChartDataLabels' que é criada pelo script do plugin.
 Chart.register(ChartDataLabels);
 
-// --- Constantes para Mensagens e URLs ---
 const MENSAGENS = {
     AUTENTICACAO_NECESSARIA: 'Você precisa estar logado para acessar esta página.',
     SESSAO_EXPIRADA: 'Sessão expirada ou acesso negado. Faça login novamente.',
@@ -15,14 +9,12 @@ const MENSAGENS = {
     ERRO_CARREGAR_PRODUTOS: 'Erro ao carregar lista de produtos.'
 };
 
-// --- Variáveis de Estado e Referências Globais ---
-let salesChart = null; // Instância do gráfico Chart.js de vendas
-let productRevenueChart = null; // Nova instância para o gráfico de faturamento por produto
-let productSalesOverTimeChart = null; // Nova instância para o gráfico de evolução de faturamento por produto
-let productsCache = new Map(); // Cache para armazenar ID do produto -> { nome: '...', preco: '...' }
-let productColorsCache = new Map(); // Cache para armazenar ID do produto -> cor
+let salesChart = null; 
+let productRevenueChart = null; 
+let productSalesOverTimeChart = null; 
+let productsCache = new Map(); 
+let productColorsCache = new Map(); 
 
-// Paleta de cores para os gráficos
 const predefinedColors = [
     '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
     '#FF9F40', '#E7E9ED', '#8B4513', '#228B22', '#CD5C5C',
@@ -30,9 +22,6 @@ const predefinedColors = [
     '#00CED1', '#DC143C', '#FFD700', '#ADFF2F', '#FF1493'
 ];
 
-/**
- * Carrega todos os produtos da API e preenche o productsCache e o productColorsCache.
- */
 async function carregarProdutos() {
     try {
         const resultado = await fetchData('/api/v1/products/', { method: 'GET' });
@@ -59,14 +48,6 @@ async function carregarProdutos() {
     }
 }
 
-// --- Funções de Processamento de Dados ---
-
-/**
- * Agrupa os pedidos por dia ou mês e calcula o faturamento total.
- * @param {Array<Object>} pedidos - Lista de pedidos concluídos.
- * @param {string} agrupamento - 'day' ou 'month'.
- * @returns {{labels: Array<string>, data: Array<number>}} Objeto com labels e dados para o gráfico.
- */
 function processarDadosVendas(pedidos, agrupamento) {
     const dadosAgrupados = {};
     pedidos.forEach(pedido => {
@@ -74,7 +55,7 @@ function processarDadosVendas(pedidos, agrupamento) {
         let chave;
         if (agrupamento === 'month') {
             chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-        } else { // 'day'
+        } else { 
             chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
         }
 
@@ -89,11 +70,6 @@ function processarDadosVendas(pedidos, agrupamento) {
     return { labels, data };
 }
 
-/**
- * Calcula o faturamento total e a quantidade total por produto.
- * @param {Array<Object>} pedidos - Lista de pedidos concluídos.
- * @returns {{labels: Array<string>, data: Array<Object>}} Objeto com labels e dados para o gráfico.
- */
 function processarFaturamentoPorProduto(pedidos) {
     const revenueAndQuantityByProduct = new Map();
     pedidos.forEach(pedido => {
@@ -114,7 +90,6 @@ function processarFaturamentoPorProduto(pedidos) {
     const labels = [];
     const data = [];
 
-    // Ordena por faturamento, do maior para o menor
     Array.from(revenueAndQuantityByProduct.entries())
          .sort(([, a], [, b]) => b.revenue - a.revenue)
          .forEach(([productId, productData]) => {
@@ -126,12 +101,6 @@ function processarFaturamentoPorProduto(pedidos) {
     return { labels, data };
 }
 
-/**
- * Processa dados para mostrar a evolução do faturamento de cada produto ao longo do tempo.
- * @param {Array<Object>} pedidos - Lista de pedidos concluídos.
- * @param {string} agrupamento - 'day' ou 'month'.
- * @returns {{labels: Array<string>, datasets: Array<Object>}}
- */
 function processarEvolucaoProdutos(pedidos, agrupamento) {
     const dadosAgrupados = {};
     const produtosUnicos = new Set();
@@ -141,7 +110,7 @@ function processarEvolucaoProdutos(pedidos, agrupamento) {
         let chave;
         if (agrupamento === 'month') {
             chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-        } else { // 'day'
+        } else { 
             chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
         }
 
@@ -182,8 +151,6 @@ function processarEvolucaoProdutos(pedidos, agrupamento) {
 
     return { labels, datasets };
 }
-
-// --- Funções de Renderização na UI ---
 
 function renderizarGrafico(labels, data) {
     const ctx = document.getElementById('salesChart').getContext('2d');
@@ -236,7 +203,7 @@ function renderizarGrafico(labels, data) {
                         }
                     }
                 },
-                datalabels: { // Configuração do plugin de data labels
+                datalabels: { 
                     anchor: 'center',
                     align: 'top',
                     formatter: function(value, context) {
@@ -268,7 +235,6 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
     noDataMessage.style.display = 'none';
     if (productRevenueChart) { productRevenueChart.destroy(); }
     
-    // Usa as cores do cache
     const backgroundColors = data.map(item => productColorsCache.get(item.productId) || '#E7E9ED');
     
     productRevenueChart = new Chart(ctx, {
@@ -302,7 +268,7 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
                         }
                     }
                 },
-                datalabels: { // Configuração do plugin de data labels
+                datalabels: { 
                     backgroundColor: 'rgba(247, 241, 241, 0.6)',
                     borderRadius: 10,
                     color: '#302e2eff',
@@ -324,11 +290,6 @@ function renderizarGraficoFaturamentoPorProduto(labels, data) {
     });
 }
 
-/**
- * Renderiza o novo gráfico de barras com a evolução do faturamento dos produtos.
- * @param {Array<string>} labels - Rótulos de tempo (ex: '2024-05').
- * @param {Array<Object>} datasets - Dados dos produtos para cada período.
- */
 function renderizarGraficoEvolucaoProdutos(labels, datasets) {
     const ctx = document.getElementById('productSalesOverTimeChart').getContext('2d');
     const noDataMessage = document.getElementById('noProductSalesOverTimeDataMessage');
@@ -388,9 +349,7 @@ function renderizarGraficoEvolucaoProdutos(labels, datasets) {
                     formatter: function (value, context) {
                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value.y);
                     },
-                    // A propriedade 'display' agora é uma função
                     display: (context) => context.dataset.data[context.dataIndex].y !== 0,
-                    // A propriedade 'backgroundColor' agora é uma função
                     backgroundColor: (context) => context.dataset.data[context.dataIndex].y !== 0 ? 'rgba(247, 241, 241, 0.6)' : 'transparent',
                     color: '#333',
                     padding: 4,
@@ -410,8 +369,6 @@ function atualizarResumo(pedidos) {
     document.getElementById('totalRevenue').textContent = `R$ ${faturamentoTotal.toFixed(2)}`;
     document.getElementById('totalOrders').textContent = totalPedidos;
 }
-
-// --- Funções de Lógica e Carregamento ---
 
 async function carregarRelatorio() {
     const loadingMessage = document.getElementById('loadingMessage');
@@ -567,7 +524,6 @@ function calcularPeriodo(range) {
     };
 }
 
-// --- Lógica Principal: Executada quando o DOM está completamente carregado ---
 document.addEventListener('DOMContentLoaded', () => {
     if (!localStorage.getItem('accessToken')) {
         alert(MENSAGENS.AUTENTICACAO_NECESSARIA);

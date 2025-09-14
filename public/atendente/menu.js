@@ -1,9 +1,4 @@
-// public/atendente/menu.js
-// Este arquivo lida com a manipulação do DOM e os eventos da página do menu,
-// delegando a lógica de negócio para o MenuLogic.
-
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. Referências a Elementos do DOM ---
     const DOM = {
         adminOnlyLinks: document.querySelectorAll('.admin-only'),
         logoutBtn: document.getElementById('logoutBtn'),
@@ -36,16 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
         orderNotesInput: document.getElementById('orderNotes'),
     };
 
-    // --- 2. Variáveis de Estado ---
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     let allProducts = [];
 
-    // --- 3. Constantes ---
     const ESTIMATED_TIME_PER_ORDER_BLOCK = 8;
     const ORDERS_PER_BLOCK = 2;
     const REFRESH_INTERVAL_MS = 30000;
-
-    // --- 4. Funções de Renderização e DOM ---
 
     function updateCartCount() {
         const count = MenuLogic.getCartItemCount(cart);
@@ -109,8 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-
-    // --- 5. Funções de Lógica de Aplicação (API, etc.) ---
 
     async function loadProducts() {
         DOM.loadingMessage.style.display = 'block';
@@ -182,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 6. Event Listeners ---
     DOM.logoutBtn.addEventListener('click', (e) => { e.preventDefault(); redirectToLoginAndClearStorage(); });
     DOM.viewCartBtn.addEventListener('click', () => { renderCart(); DOM.cartModal.style.display = 'block'; });
     DOM.closeButton.addEventListener('click', () => DOM.cartModal.style.display = 'none');
@@ -224,7 +212,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 7. Inicialização ---
     if (!localStorage.getItem('accessToken')) {
         redirectToLoginAndClearStorage();
         return;

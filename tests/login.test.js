@@ -1,6 +1,3 @@
-// tests/login.test.js
-
-// 1. Lógica a ser testada (copiada do index.js para isolamento)
 async function handleLogin(username, password, fetchFunc) {
     const formData = new URLSearchParams();
     formData.append('username', username);
@@ -24,9 +21,9 @@ async function handleLogin(username, password, fetchFunc) {
 
             let redirectUrl = '';
             if (userRole === 'attendant') {
-                redirectUrl = '../public/atendente/menu.html'; // Caminho atualizado
+                redirectUrl = '../public/atendente/menu.html'; 
             } else if (userRole === 'kitchen') {
-                redirectUrl = '../public/chapeiro/preparar_pedidos.html'; // Caminho atualizado
+                redirectUrl = '../public/chapeiro/preparar_pedidos.html'; 
             } else if (userRole === 'admin') {
                 return { success: true, role: 'admin', message: 'Selecione o perfil para acessar.' };
             }
@@ -44,7 +41,6 @@ async function handleLogin(username, password, fetchFunc) {
     }
 }
 
-// 2. Execução dos Testes
 window.onload = function() {
     if (typeof mocha === 'undefined' || typeof chai === 'undefined') {
         console.error('Mocha ou Chai não foram carregados.');

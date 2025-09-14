@@ -1,9 +1,4 @@
-// public/admin/gerenciar_produtos.js
-// Lógica para operações CRUD de produtos.
-
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- Configurações e Referências ---   
-
     const ELEMENTS = {
         logoutBtn: document.getElementById('logoutBtn'),
         productsList: document.getElementById('productsList'),
@@ -59,30 +54,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorDeletingProduct: 'Erro ao deletar produto.',
     };
 
-    let currentEditProductId = null; // Para rastrear qual produto está sendo editado
+    let currentEditProductId = null; 
 
-    // --- Validação de Autenticação Inicial ---
     if (!localStorage.getItem('accessToken')) {
         alert(MESSAGES.authRequired);
-        redirectToLoginAndClearStorage(); // Usando a função global
-        return; // Impede que o restante do script seja executado sem o token
+        redirectToLoginAndClearStorage(); 
+        return; 
     }
 
-    // --- Lógica de Logout ---
     if (ELEMENTS.logoutBtn) {
         ELEMENTS.logoutBtn.addEventListener('click', (event) => {
             event.preventDefault();
-            redirectToLoginAndClearStorage(); // Usando a função global
+            redirectToLoginAndClearStorage(); 
         });
     }
-
-    // --- Operações CRUD de Produtos ---
 
     async function fetchProducts() {
         ELEMENTS.productsList.innerHTML = `<li>${MESSAGES.loadingProducts}</li>`;
         ELEMENTS.productsPaginationInfo.innerText = '';
 
-        // Fetch all products to get total count (less efficient frontend workaround)
         const allProductsData = await fetchData(`/api/v1/products/?limit=10000`, { method: 'GET' });
         const total_count = allProductsData ? allProductsData.items.length : 0;
 
@@ -128,12 +118,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 ELEMENTS.productsPaginationInfo.innerText = `Página: ${page} de ${total_pages} (Total: ${total_count} items)`;
 
-                // Handle button states
                 ELEMENTS.prevPageBtn.disabled = current_offset === 0;
                 ELEMENTS.nextPageBtn.disabled = page >= total_pages;
             }
         } else {
-            displayMessage(ELEMENTS.productsList, MESSAGES.errorFetchingProducts, 'error'); // Usando a função global
+            displayMessage(ELEMENTS.productsList, MESSAGES.errorFetchingProducts, 'error'); 
             ELEMENTS.prevPageBtn.disabled = true;
             ELEMENTS.nextPageBtn.disabled = true;
         }
@@ -141,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function createProduct(event) {
         event.preventDefault();
-        displayMessage(ELEMENTS.createProductMessage, '', 'default'); // Usando a função global
+        displayMessage(ELEMENTS.createProductMessage, '', 'default'); 
 
         const newProduct = {
             name: ELEMENTS.createName.value,
@@ -151,11 +140,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (!newProduct.name || newProduct.name.trim() === '') {
-            displayMessage(ELEMENTS.createProductMessage, MESSAGES.nameRequired, 'error'); // Usando a função global
+            displayMessage(ELEMENTS.createProductMessage, MESSAGES.nameRequired, 'error'); 
             return;
         }
         if (isNaN(newProduct.price) || newProduct.price <= 0) {
-            displayMessage(ELEMENTS.createProductMessage, MESSAGES.priceInvalid, 'error'); // Usando a função global
+            displayMessage(ELEMENTS.createProductMessage, MESSAGES.priceInvalid, 'error'); 
             return;
         }
 
@@ -167,24 +156,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (data) {
             if (data.id) {
-                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccess(newProduct.name, data.id), 'success'); // Usando a função global
+                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccess(newProduct.name, data.id), 'success'); 
             } else {
-                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccessNoId, 'warning'); // Usando a função global
+                displayMessage(ELEMENTS.createProductMessage, MESSAGES.productCreatedSuccessNoId, 'warning'); 
             }
-            clearForm(ELEMENTS.createProductForm); // Usando a função global
+            clearForm(ELEMENTS.createProductForm); 
             fetchProducts();
         } else {
-            displayMessage(ELEMENTS.createProductMessage, MESSAGES.errorCreatingProduct, 'error'); // Usando a função global
+            displayMessage(ELEMENTS.createProductMessage, MESSAGES.errorCreatingProduct, 'error'); 
         }
     }
 
     async function getProductById() {
         const productId = ELEMENTS.getProductIdInput.value.trim();
-        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); // Usando a função global
+        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); 
         ELEMENTS.updateProductForm.style.display = 'none';
 
         if (!productId) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.idRequired, 'error'); // Usando a função global
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.idRequired, 'error'); 
             return;
         }
 
@@ -202,12 +191,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             ELEMENTS.updateCategory.value = data.category || '';
 
             ELEMENTS.updateProductForm.style.display = 'block';
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productLoadedForEdit(data.name), 'success'); // Usando a função global
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productLoadedForEdit(data.name), 'success'); 
         } else {
             if (productId && ELEMENTS.productDetailMessage.innerText === MESSAGES.serverConnectionError) {
-                // If the error was from connection, the message is already there
             } else {
-                displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productNotFound(productId), 'warning'); // Usando a função global
+                displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productNotFound(productId), 'warning'); 
             }
         }
     }
@@ -217,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert(`${MESSAGES.noProductSelected}atualização.`);
             return;
         }
-        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); // Usando a função global
+        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); 
 
         const productData = {};
         const name = ELEMENTS.updateName.value;
@@ -231,7 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (category) productData.category = category;
 
         if (Object.keys(productData).length === 0) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.noFieldsToPatch, 'warning'); // Usando a função global
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.noFieldsToPatch, 'warning'); 
             return;
         }
 
@@ -242,10 +230,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (data) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productUpdatedSuccess(productData.name), 'success'); // Usando a função global
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productUpdatedSuccess(productData.name), 'success'); 
             fetchProducts();
         } else {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorUpdatingProduct, 'error'); // Usando a função global
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorUpdatingProduct, 'error'); 
         }
     }
 
@@ -254,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert(`${MESSAGES.noProductSelected}exclusão.`);
             return;
         }
-        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); // Usando a função global
+        displayMessage(ELEMENTS.productDetailMessage, '', 'default'); 
 
         if (!confirm(MESSAGES.confirmDelete(currentEditProductId))) {
             return;
@@ -265,17 +253,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (data !== null) {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productDeletedSuccess(ELEMENTS.updateName.value), 'success'); // Usando a função global
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.productDeletedSuccess(ELEMENTS.updateName.value), 'success'); 
             ELEMENTS.updateProductForm.style.display = 'none';
             currentEditProductId = null;
             ELEMENTS.getProductIdInput.value = '';
             fetchProducts();
         } else {
-            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorDeletingProduct, 'error'); // Usando a função global
+            displayMessage(ELEMENTS.productDetailMessage, MESSAGES.errorDeletingProduct, 'error'); 
         }
     }
 
-    // --- Chamadas Iniciais e Event Listeners ---
     ELEMENTS.fetchProductsBtn.addEventListener('click', fetchProducts);
     ELEMENTS.createProductForm.addEventListener('submit', createProduct);
     ELEMENTS.getProductBtn.addEventListener('click', getProductById);
@@ -298,6 +285,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchProducts();
     });
 
-    // Carrega os produtos ao iniciar a página
     fetchProducts();
 });
