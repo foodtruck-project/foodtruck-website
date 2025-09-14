@@ -1,7 +1,3 @@
-// public/chapeiro/avaliar_pedidos.js
-// Lógica para atribuir/editar notas de pedidos e exibir ranking de produtos.
-
-// --- Constantes para Mensagens e URLs ---
 const MENSAGENS_AVALIAR = {
     AUTENTICACAO_NECESSARIA: 'Você precisa estar logado para acessar esta página.',
     SESSAO_EXPIRADA: 'Sessão expirada ou acesso negado. Faça login novamente.',
@@ -21,10 +17,8 @@ const URLS_AVALIAR = {
     LOGIN: '../index.html'
 };
 
-// --- Referências Globais para os Elementos DOM ---
 let logoutBtn;
 
-// Elementos da seção "Avaliar Novos Pedidos Concluídos"
 let evalOrdersLoading;
 let noEvalOrdersMessage;
 let ordersToEvaluateList;
@@ -37,23 +31,19 @@ let orderRatingInput;
 let submitRatingBtn;
 let evaluationMessage;
 
-// Elementos da seção "Pedidos Já Avaliados"
 let evaluatedOrdersLoading;
 let noEvaluatedOrdersMessage;
 let evaluatedOrdersList;
 
-// Elementos da seção "Ranking de Produtos"
 let rankingLoadingMessage;
 let noRankingMessage;
 let rankingList;
 
-// Variáveis globais para dados
-let currentSelectedOrderId = null; // Armazena o ID do pedido atualmente selecionado para atribuição de nota
-let currentSelectedOrderLocator = null; // Armazena o localizador do pedido atualmente selecionado
-let productsCache = new Map(); // Cache para armazenar ID do produto -> Nome do produto
-let allOrdersDataForRanking = []; // Para armazenar todos os pedidos para o ranking
+let currentSelectedOrderId = null; 
+let currentSelectedOrderLocator = null; 
+let productsCache = new Map(); 
+let allOrdersDataForRanking = []; 
 
-// --- Funções Auxiliares ---
 const obterTokenAcesso = () => localStorage.getItem('accessToken');
 
 const removerDadosSessao = () => {
@@ -75,7 +65,6 @@ function lidarComErroAutenticacao(resposta) {
     return false;
 }
 
-// Adaptação da função de formatação de data para GMT-6
 const formatarDataCriacao = (dataString) => {
     let dataParaParsear = dataString;
     if (!dataString.endsWith('Z') && !dataString.includes('+') && !dataString.includes('-')) {
@@ -89,15 +78,10 @@ const formatarDataCriacao = (dataString) => {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: 'America/Sao_Paulo' // GMT-6
+        timeZone: 'America/Sao_Paulo' 
     });
 };
 
-/**
- * Exibe uma mensagem na tela (sucesso/erro) na seção de avaliação de novos pedidos.
- * @param {string} msg A mensagem a ser exibida.
- * @param {string} type O tipo de mensagem ('success' ou 'error').
- */
 const showMainEvaluationMessage = (msg, type) => {
     evaluationMessage.textContent = msg;
     evaluationMessage.className = `message ${type}`;
@@ -110,12 +94,6 @@ const clearMainEvaluationMessage = () => {
     evaluationMessage.className = 'message';
 };
 
-/**
- * Exibe uma mensagem dentro de um card de pedido avaliado.
- * @param {HTMLElement} cardElement O elemento do card onde a mensagem será exibida.
- * @param {string} msg A mensagem a ser exibida.
- * @param {string} type O tipo de mensagem ('success' ou 'error').
- */
 const showCardMessage = (cardElement, msg, type) => {
     let msgElement = cardElement.querySelector('.card-message');
     if (!msgElement) {
@@ -137,11 +115,6 @@ const clearCardMessage = (cardElement) => {
     }
 };
 
-/**
- * Gera a lista de produtos para exibir dentro de um card de pedido.
- * @param {Array} products Array de objetos de produto do pedido (ex: [{product_id: 'abc', quantity: 1}]).
- * @returns {string} HTML formatado da lista de produtos.
- */
 function renderOrderProducts(products) {
     if (!products || products.length === 0) {
         return '<p>Nenhum produto listado.</p>';
@@ -153,11 +126,6 @@ function renderOrderProducts(products) {
     return `<ul class="order-products-list">${productItems}</ul>`;
 }
 
-// --- Funções Principais ---
-
-/**
- * Carrega todos os produtos da API e preenche o productsCache.
- */
 async function carregarProdutos() {
     try {
         const resposta = await fetch(`${API_BASE_URL}/api/v1/products/`, {
@@ -188,19 +156,16 @@ async function carregarProdutos() {
     }
 }
 
-/**
- * Carrega e exibe todos os pedidos concluídos que **ainda não foram avaliados**.
- */
 async function carregarPedidosParaAvaliar() {
     evalOrdersLoading.style.display = 'block';
     noEvalOrdersMessage.style.display = 'none';
-    ordersToEvaluateList.innerHTML = ''; // Limpa a lista existente
-    ratingInputCard.style.display = 'none'; // Esconde o card de input de nota
+    ordersToEvaluateList.innerHTML = ''; 
+    ratingInputCard.style.display = 'none'; 
     clearMainEvaluationMessage();
 
     try {
         const queryParams = new URLSearchParams();
-        queryParams.append('status', 'COMPLETED'); // Apenas pedidos concluídos
+        queryParams.append('status', 'COMPLETED'); 
         queryParams.append('limit', 500); 
 
         const accessToken = obterTokenAcesso();
@@ -220,7 +185,6 @@ async function carregarPedidosParaAvaliar() {
         const resultado = await resposta.json();
 
         if (resposta.ok && resultado.orders) {
-            // Filtra localmente para pegar apenas pedidos COMPLETED que ainda não têm nota
             let pedidosSemNota = resultado.orders.filter(order => 
                 order.status.toUpperCase() === 'COMPLETED' && (order.rating === undefined || order.rating === null)
             );
@@ -257,7 +221,8 @@ async function carregarPedidosParaAvaliar() {
             
             if (pedidosSemNota.length === 0) {
                 noEvalOrdersMessage.style.display = 'block';
-            } else {
+            }
+            else {
                 pedidosSemNota.forEach(pedido => {
                     const orderCard = document.createElement('div');
                     orderCard.className = 'order-to-evaluate-card';
@@ -285,17 +250,11 @@ async function carregarPedidosParaAvaliar() {
     }
 }
 
-/**
- * Seleciona um pedido para avaliação (primeira vez), exibe seus detalhes e prepara o formulário.
- * @param {object} pedido - O objeto do pedido a ser avaliado.
- */
 function selectOrderForRating(pedido) {
-    // Remove a classe 'selected' de todos os cards de "novos pedidos"
     document.querySelectorAll('.order-to-evaluate-card').forEach(card => {
         card.classList.remove('selected');
     });
 
-    // Adiciona a classe 'selected' ao card clicado
     const selectedCard = document.querySelector(`.order-to-evaluate-card[data-order-id="${pedido.id}"]`);
     if (selectedCard) {
         selectedCard.classList.add('selected');
@@ -305,27 +264,19 @@ function selectOrderForRating(pedido) {
     currentSelectedOrderLocator = pedido.locator;
     
     selectedOrderLocator.textContent = pedido.locator;
-    selectedOrderStatus.textContent = pedido.status.toUpperCase(); // Pode remover isso se quiser, já que são sempre COMPLETED
+    selectedOrderStatus.textContent = pedido.status.toUpperCase(); 
     selectedOrderTotal.textContent = pedido.total ? pedido.total.toFixed(2) : '0.00';
     selectedOrderCreatedAt.textContent = formatarDataCriacao(pedido.created_at);
     
-    orderRatingInput.value = ''; // Limpa o campo de nota para nova avaliação
-    ratingInputCard.style.display = 'block'; // Mostra o card de input de nota
+    orderRatingInput.value = ''; 
+    ratingInputCard.style.display = 'block'; 
     submitRatingBtn.disabled = false;
     clearMainEvaluationMessage();
 }
 
-/**
- * Atribui/Atualiza uma nota a um pedido.
- * Esta função agora é genérica para atribuir ou editar.
- * @param {string} orderId O ID do pedido.
- * @param {string} orderLocator O localizador do pedido.
- * @param {number} rating A nota a ser atribuída.
- * @param {HTMLElement} [messageElement] Elemento HTML para exibir a mensagem (opcional, para cards individuais).
- */
 async function updateOrderRating(orderId, orderLocator, rating, messageElement = null) {
-    clearMainEvaluationMessage(); // Limpa a mensagem principal
-    if (messageElement) clearCardMessage(messageElement.closest('.evaluated-order-card')); // Limpa mensagem do card se houver
+    clearMainEvaluationMessage(); 
+    if (messageElement) clearCardMessage(messageElement.closest('.evaluated-order-card')); 
 
     if (isNaN(rating) || rating < 0 || rating > 5) {
         if (messageElement) {
@@ -338,7 +289,7 @@ async function updateOrderRating(orderId, orderLocator, rating, messageElement =
 
     try {
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/${orderId}`, {
-            method: 'PATCH', // PATCH para atualizar apenas o campo 'rating'
+            method: 'PATCH', 
             headers: {
                 'Authorization': `Bearer ${obterTokenAcesso()}`,
                 'Content-Type': 'application/json',
@@ -358,13 +309,11 @@ async function updateOrderRating(orderId, orderLocator, rating, messageElement =
                 showMainEvaluationMessage(MENSAGENS_AVALIAR.NOTA_SUCESSO(orderLocator), 'success');
             }
             
-            // Após a avaliação/edição, recarrega ambas as listas de pedidos e o ranking
             await carregarPedidosParaAvaliar(); 
             await carregarPedidosAvaliados();
-            await carregarTodosPedidosParaRanking(); // Recarrega os dados completos para o ranking
+            await carregarTodosPedidosParaRanking(); 
             calcularEExibirRanking();
 
-            // Reseta a interface de nova avaliação se foi de lá que veio a chamada
             if (!messageElement) { 
                 ratingInputCard.style.display = 'none';
                 orderRatingInput.value = '';
@@ -393,23 +342,18 @@ async function updateOrderRating(orderId, orderLocator, rating, messageElement =
     }
 }
 
-// Event listener para o botão de atribuir nota na seção de novos pedidos
 async function handleSubmitNewRating() {
     await updateOrderRating(currentSelectedOrderId, currentSelectedOrderLocator, parseInt(orderRatingInput.value));
 }
 
-
-/**
- * Carrega e exibe todos os pedidos concluídos que **já foram avaliados**.
- */
 async function carregarPedidosAvaliados() {
     evaluatedOrdersLoading.style.display = 'block';
     noEvaluatedOrdersMessage.style.display = 'none';
-    evaluatedOrdersList.innerHTML = ''; // Limpa a lista existente
+    evaluatedOrdersList.innerHTML = ''; 
 
     try {
         const queryParams = new URLSearchParams();
-        queryParams.append('status', 'COMPLETED'); // Apenas pedidos concluídos
+        queryParams.append('status', 'COMPLETED'); 
         queryParams.append('limit', 500); 
 
         const accessToken = obterTokenAcesso();
@@ -429,7 +373,6 @@ async function carregarPedidosAvaliados() {
         const resultado = await resposta.json();
 
         if (resposta.ok && resultado.orders) {
-            // Filtra localmente para pegar apenas pedidos COMPLETED que já têm nota
             let pedidosComNota = resultado.orders.filter(order => 
                 order.status.toUpperCase() === 'COMPLETED' && (order.rating !== undefined && order.rating !== null)
             );
@@ -467,7 +410,7 @@ async function carregarPedidosAvaliados() {
             if (pedidosComNota.length === 0) {
                 noEvaluatedOrdersMessage.style.display = 'block';
             } else {
-                pedidosComNota.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Ordena pelos mais recentes
+                pedidosComNota.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); 
                 pedidosComNota.forEach(pedido => {
                     const orderCard = document.createElement('div');
                     orderCard.className = 'evaluated-order-card';
@@ -486,14 +429,13 @@ async function carregarPedidosAvaliados() {
                     evaluatedOrdersList.appendChild(orderCard);
                 });
 
-                // Adiciona event listeners aos botões de atualização dos pedidos avaliados
                 document.querySelectorAll('.update-evaluated-rating-btn').forEach(button => {
                     button.addEventListener('click', async (event) => {
                         const orderId = event.target.dataset.orderId;
                         const orderLocator = event.target.dataset.orderLocator;
                         const ratingInput = document.getElementById(`editRating-${orderId}`);
                         const newRating = parseInt(ratingInput.value);
-                        await updateOrderRating(orderId, orderLocator, newRating, event.target); // Passa o elemento para showCardMessage
+                        await updateOrderRating(orderId, orderLocator, newRating, event.target); 
                     });
                 });
             }
@@ -511,20 +453,16 @@ async function carregarPedidosAvaliados() {
     }
 }
 
-
-/**
- * Carrega todos os pedidos (especificamente os COMPLETED) para o cálculo do ranking.
- */
 async function carregarTodosPedidosParaRanking() {
     rankingLoadingMessage.style.display = 'block';
     noRankingMessage.style.display = 'none';
     rankingList.style.display = 'none';
-    allOrdersDataForRanking = []; // Limpa dados anteriores
+    allOrdersDataForRanking = []; 
 
     try {
         const queryParams = new URLSearchParams();
-        queryParams.append('status', 'COMPLETED'); // Apenas pedidos concluídos para ranking
-        queryParams.append('limit', 1000); // Exemplo: limite alto para buscar muitos pedidos
+        queryParams.append('status', 'COMPLETED'); 
+        queryParams.append('limit', 1000); 
 
         const accessToken = obterTokenAcesso();
         const resposta = await fetch(`${API_BASE_URL}/api/v1/orders/?${queryParams.toString()}`, {
@@ -562,16 +500,16 @@ async function carregarTodosPedidosParaRanking() {
 
                     const resultadoItens = await respostaItens.json();
                     if (respostaItens.ok && resultadoItens.order_items) {
-                        pedido.items = resultadoItens.order_items; // Attach items to the order object
+                        pedido.items = resultadoItens.order_items; 
                     } else {
                         console.error(`Erro ao carregar itens do pedido ${pedido.id}:`, resultadoItens.detail || resultadoItens.message || respostaItens.statusText);
-                        pedido.items = []; // Ensure items array exists even on error
+                        pedido.items = []; 
                     }
                 } catch (error) {
                     console.error(`Erro na requisição de itens para o pedido ${pedido.id}:`, error);
-                    pedido.items = []; // Ensure items array exists even on network error
+                    pedido.items = []; 
                 }
-                return pedido; // Return the modified pedido
+                return pedido; 
             });
 
             allOrdersDataForRanking = await Promise.all(itemFetchPromises);
@@ -590,18 +528,14 @@ async function carregarTodosPedidosParaRanking() {
     }
 }
 
-/**
- * Calcula e exibe o ranking dos produtos com base nas notas dos pedidos.
- */
 function calcularEExibirRanking() {
-    rankingList.innerHTML = ''; // Limpa a lista
+    rankingList.innerHTML = ''; 
 
-    const productStats = new Map(); // Map: productId -> { totalRating: number, countRating: number, salesCount: number }
+    const productStats = new Map(); 
 
     allOrdersDataForRanking.forEach(order => {
-        // Apenas pedidos com rating e status CONCLUIDO
         if (order.status.toUpperCase() === 'COMPLETED' && order.rating !== undefined && order.rating !== null) {
-            order.items.forEach(item => { // Assume que `order.products` é o array de itens
+            order.items.forEach(item => { 
                 const productId = item.product_id;
                 
                 if (!productStats.has(productId)) {
@@ -611,7 +545,7 @@ function calcularEExibirRanking() {
                 
                 stats.totalRating += order.rating;
                 stats.countRating++;
-                stats.salesCount += item.quantity; // Soma a quantidade vendida de cada item
+                stats.salesCount += item.quantity; 
             });
         }
     });
@@ -628,12 +562,11 @@ function calcularEExibirRanking() {
         return {
             productId,
             productName,
-            averageRating: parseFloat(averageRating.toFixed(2)), // Formata para 2 casas decimais
+            averageRating: parseFloat(averageRating.toFixed(2)), 
             salesCount: stats.salesCount
         };
     });
 
-    // Ordena o ranking: primeiro por média de notas (maior para menor), depois por vendas (maior para menor)
     rankingArray.sort((a, b) => {
         if (b.averageRating !== a.averageRating) {
             return b.averageRating - a.averageRating;
@@ -641,7 +574,6 @@ function calcularEExibirRanking() {
         return b.salesCount - a.salesCount;
     });
 
-    // Preenche com cards
     rankingArray.forEach(product => {
         const card = document.createElement('div');
         card.className = 'ranking-card';
@@ -659,12 +591,9 @@ function calcularEExibirRanking() {
     noRankingMessage.style.display = 'none';
 }
 
-// --- Lógica Principal: Executada quando o DOM está completamente carregado ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- Atribuição das Referências DOM ---
     logoutBtn = document.getElementById('logoutBtn');
 
-    // Seção de Avaliar Novos Pedidos
     evalOrdersLoading = document.getElementById('evalOrdersLoading');
     noEvalOrdersMessage = document.getElementById('noEvalOrdersMessage');
     ordersToEvaluateList = document.getElementById('ordersToEvaluateList');
@@ -677,33 +606,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     submitRatingBtn = document.getElementById('submitRatingBtn');
     evaluationMessage = document.getElementById('evaluationMessage');
 
-    // Seção de Pedidos Já Avaliados
     evaluatedOrdersLoading = document.getElementById('evaluatedOrdersLoading');
     noEvaluatedOrdersMessage = document.getElementById('noEvaluatedOrdersMessage');
     evaluatedOrdersList = document.getElementById('evaluatedOrdersList');
 
-    // Seção de Ranking
     rankingLoadingMessage = document.getElementById('rankingLoadingMessage');
     noRankingMessage = document.getElementById('noRankingMessage');
     rankingList = document.getElementById('rankingList');
 
     const accessToken = obterTokenAcesso();
 
-    // --- Validação de Autenticação na Inicialização ---
     if (!accessToken) {
         alert(MENSAGENS_AVALIAR.AUTENTICACAO_NECESSARIA);
         redirecionarParaLogin();
         return;
     }
 
-    // --- Configuração da API_BASE_URL ---
     if (typeof API_BASE_URL === 'undefined') {
         console.error(MENSAGENS_AVALIAR.ERRO_CONFIGURACAO_API.replace('API_BASE_URL não encontrada.', 'API_BASE_URL não está definida. Verifique common.js ou seu escopo.'));
         alert(MENSAGENS_AVALIAR.ERRO_CONFIGURACAO_API);
         return;
     }
 
-    // --- Event Listeners ---
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (evento) => {
             evento.preventDefault();
@@ -716,13 +640,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitRatingBtn.addEventListener('click', handleSubmitNewRating);
     }
     
-    // --- Carregamento Inicial de Dados ---
-    await carregarProdutos(); // Essencial para o ranking E para exibir nomes dos produtos nos pedidos
-    await carregarPedidosParaAvaliar(); // Preenche a lista de pedidos SEM NOTA
-    await carregarPedidosAvaliados(); // Preenche a lista de pedidos COM NOTA
-    await carregarTodosPedidosParaRanking(); // Preenche os dados completos para o ranking
+    await carregarProdutos(); 
+    await carregarPedidosParaAvaliar(); 
+    await carregarPedidosAvaliados();
+    await carregarTodosPedidosParaRanking(); 
 
-    // Após carregar os dados, calcula e exibe o ranking
     if (productsCache.size > 0 && allOrdersDataForRanking.length > 0) {
         calcularEExibirRanking();
     } else {

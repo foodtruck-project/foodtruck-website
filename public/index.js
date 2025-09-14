@@ -1,6 +1,3 @@
-// public/index.js
-// Lógica de manipulação do formulário de login e chamada à API de autenticação.
-
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('errorMessage');
@@ -44,18 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (userRole === 'kitchen') {
                         window.location.href = './chapeiro/preparar_pedidos.html';
                     } else if (userRole === 'admin') {
-                        // Mostra o campo de seleção de perfil
                         roleGroup.style.display = 'block';
                         errorMessage.innerText = 'Selecione o perfil para acessar.';
 
-                        // Espera o admin escolher e redireciona
                         roleSelect.addEventListener('change', function onChange() {
                             if (roleSelect.value === 'atendente') {
                                 window.location.href = './atendente/menu.html';
                             } else if (roleSelect.value === 'chapeiro') {
                                 window.location.href = './chapeiro/preparar_pedidos.html';
                             }
-                            // Remove o listener após o uso
                             roleSelect.removeEventListener('change', onChange);
                         });
                     } else {
