@@ -1,6 +1,6 @@
 window.onload = function() {
-    if (typeof mocha === 'undefined' || typeof chai === 'undefined' || typeof MenuLogic === 'undefined') {
-        console.error('Mocha, Chai ou MenuLogic não foram carregados.');
+    if (typeof mocha === 'undefined' || typeof chai === 'undefined' || typeof MenuLogic === 'undefined' || typeof isUserAdmin === 'undefined') {
+        console.error('Mocha, Chai, MenuLogic ou isUserAdmin não foram carregados.');
         return;
     }
 
@@ -95,9 +95,9 @@ window.onload = function() {
             });
 
             it('deve identificar um usuário admin', () => {
-                expect(MenuLogic.isUserAdmin('admin')).to.be.true;
-                expect(MenuLogic.isUserAdmin('attendant')).to.be.false;
-                expect(MenuLogic.isUserAdmin(null)).to.be.false;
+                expect(isUserAdmin('admin')).to.be.true;
+                expect(isUserAdmin('attendant')).to.be.false;
+                expect(isUserAdmin(null)).to.be.false;
             });
         });
     });
