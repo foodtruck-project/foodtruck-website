@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('password', password);
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/token`, {
+                const response = await fetch(`https://foodtruck-api.bentomachado.dev/api/v1/token/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     localStorage.setItem('accessToken', data.access_token);
-                  
+
                     const userRole = data.user?.role;
                     localStorage.setItem('userRole', userRole);
-                    
+
                     if (userRole === 'attendant') {
                         window.location.href = './atendente/menu.html';
                     } else if (userRole === 'kitchen') {
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 console.error('Erro na requisição de login:', error);
+                console.log(error)
                 errorMessage.innerText = 'Ocorreu um erro ao tentar fazer login. Verifique sua conexão.';
             }
         });
