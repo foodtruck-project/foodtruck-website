@@ -1,10 +1,12 @@
-const API_BASE_URL = 'http://foodtruck.docker.localhost'; 
+const PROD_API_BASE_URL = 'https://foodtruck-api.bentomachado.dev';
+const API_BASE_URL = 'http://foodtruck.docker.localhost';
 
-window.API_BASE_URL = API_BASE_URL;
+
+window.API_BASE_URL = PROD_API_BASE_URL;
 function redirectToLoginAndClearStorage() {
     alert('Sessão expirada ou acesso negado. Faça login novamente.');
     localStorage.clear();
-    window.location.href = '../index.html'; 
+    window.location.href = '../index.html';
 }
 
 async function fetchData(endpoint, options = {}) {
