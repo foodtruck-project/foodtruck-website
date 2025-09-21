@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleGroup = document.getElementById('role-group');
     const roleSelect = document.getElementById('role');
 
+    console.log('Script carregado e DOM pronto.');
+    console.log('API_BASE_URL:', API_BASE_URL);
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
