@@ -248,3 +248,26 @@ footer .container {
     color: #000; /* Define a cor do texto para preto */
     padding-bottom: 0;
 }
+
+@media (max-width: 768px) {
+    .content-wrapper {
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .left-container {
+        margin: 0 0 20px 0;
+        max-width: 100%;
+    }
+
+    .container {
+        margin: 0;
+        max-width: 100%;
+    }
+
+    .menu-columns,
+    .ranking-columns {
+        flex-direction: column;
+    }
+}
