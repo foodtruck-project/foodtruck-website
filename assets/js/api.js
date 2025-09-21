@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://api-foodtruck.bentomachado.dev/';
+const API_BASE_URL = 'https://api-foodtruck.bentomachado.dev';
 
 
 window.API_BASE_URL = API_BASE_URL;

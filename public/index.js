@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('password', password);
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/token/`, {
+                const response = await fetch(`${API_BASE_URL}/api/v1/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
