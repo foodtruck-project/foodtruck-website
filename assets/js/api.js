@@ -33,10 +33,21 @@ async function fetchData(endpoint, options = {}) {
             return null;
         }
 
-        const data = await response.json();
+        // Check if response is JSON before parsing
+        const contentType = response.headers.get('content-type');
+        let data;
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            // Handle non-JSON responses (like HTML error pages from Cloudflare)
+            const textData = await response.text();
+            console.warn('Received non-JSON response:', textData);
+            data = { message: textData || response.statusText };
+        }
+
         console.log('Response Data:', data);
         if (!response.ok) {
-            const errorMessage = data.detail || data.message || response.statusText;
+            const errorMessage = data.detail || data.message || data.error || response.statusText;
             console.error(`Erro na requisição para ${url}:`, errorMessage, data);
             throw new Error(errorMessage);
         }
