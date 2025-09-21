@@ -11,12 +11,13 @@ function redirectToLoginAndClearStorage() {
 async function fetchData(endpoint, options = {}) {
     const accessToken = localStorage.getItem('accessToken');
     const url = `${API_BASE_URL}${endpoint}`;
-
+    console.log('Fetching URL:', url);
+    console.log('Options:', options);
     const headers = {
         'Accept': 'application/json',
         ...options.headers,
     };
-
+    console.log('Access Token:', accessToken);
     if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
     }
@@ -33,7 +34,7 @@ async function fetchData(endpoint, options = {}) {
         }
 
         const data = await response.json();
-
+        console.log('Response Data:', data);
         if (!response.ok) {
             const errorMessage = data.detail || data.message || response.statusText;
             console.error(`Erro na requisição para ${url}:`, errorMessage, data);
