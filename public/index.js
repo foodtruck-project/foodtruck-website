@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('Script carregado e DOM pronto.');
     console.log('API_BASE_URL:', API_BASE_URL);
+
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();

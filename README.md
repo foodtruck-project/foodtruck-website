@@ -51,8 +51,11 @@ O arquivo assets/js/common.js centraliza a URL base do backend (API_BASE_URL) e 
 
 
 ````
-const API_BASE_URL = 'http://localhost:8000/';
+// Em produção prefira HTTPS. Para desenvolvimento local sem TLS, HTTPS local
+// também é recomendado; caso contrário documente que é apenas para dev.
+const API_BASE_URL = 'https://localhost:8000/';
 ````
+Nota: se o seu backend estiver rodando localmente sem TLS, `http://localhost:8000/` pode ser usado somente para testes locais — evite URLs em claro em código de produção.
 Se o seu backend não estiver rodando na porta HTTP padrão (porta 80, que é a implícita quando não há um número de porta na URL), você precisará modificar essa URL para incluir a porta correta.
 
 
